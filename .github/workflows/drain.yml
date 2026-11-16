@@ -1,0 +1,32 @@
+name: Outbox Drain Scheduler
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  drain:
+    name: Drain Outbox Queues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drain Store Outbox Queue
+        run: |
+          if [ -n "${{ secrets.STORE_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET }}" ]; then
+            curl -s -X POST "${{ secrets.STORE_PUBLIC_URL }}/api/internal/drain" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              --max-time 10 || echo "Store drain request completed with status $?"
+          else
+            echo "Secrets not configured yet, skipping store drain."
+          fi
+
+      - name: Drain FSM Outbox Queue
+        run: |
+          if [ -n "${{ secrets.FSM_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET }}" ]; then
+            curl -s -X POST "${{ secrets.FSM_PUBLIC_URL }}/api/internal/drain" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              --max-time 10 || echo "FSM drain request completed with status $?"
+          else
+            echo "Secrets not configured yet, skipping FSM drain."
+          fi

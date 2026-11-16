@@ -1,0 +1,913 @@
+openapi: 3.1.0
+info:
+  title: GoodHand Prototype Inter-Service Contract
+  description: OpenAPI 3.1 contract governing all communication between System A (Store) and System B (FSM).
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api/v1
+    description: System A (Store) Local
+  - url: http://localhost:3100/api/v1
+    description: System B (FSM) Local
+
+tags:
+  - name: Installations
+    description: Installation order creation, queries, rescheduling, and cancellations
+  - name: Webhooks
+    description: Inter-system asynchronous state notifications
+  - name: Catalog
+    description: Product catalog synchronization
+  - name: Feedback
+    description: Customer technician ratings and comments
+  - name: Stock
+    description: Real-time stock ledger availability queries
+
+paths:
+  /installations:
+    post:
+      tags:
+        - Installations
+      summary: OP-01 Create Installation Job
+      description: Dispatched by System A when an order requiring installation is paid.
+      operationId: createInstallation
+      security:
+        - OAuth2ClientCredentials:
+            - "installations:create"
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInstallationRequest"
+      responses:
+        "201":
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallationJobResponse"
+        "200":
+          description: Idempotent replay of existing job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallationJobResponse"
+        "400":
+          $ref: "#/components/responses/StandardError"
+        "401":
+          $ref: "#/components/responses/StandardError"
+        "403":
+          $ref: "#/components/responses/StandardError"
+        "409":
+          $ref: "#/components/responses/StandardError"
+        "422":
+          $ref: "#/components/responses/StandardError"
+        "500":
+          $ref: "#/components/responses/StandardError"
+
+  /installations/{jobNumber}:
+    get:
+      tags:
+        - Installations
+      summary: OP-02 Get Installation Job
+      description: System A fetches the current state of a job from System B.
+      operationId: getInstallation
+      security:
+        - OAuth2ClientCredentials:
+            - "installations:read"
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^JOB-[0-9]{8}-[0-9]{6}$"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallationJobResponse"
+        "404":
+          $ref: "#/components/responses/StandardError"
+
+  /installations/{jobNumber}/reschedule-requests:
+    post:
+      tags:
+        - Installations
+      summary: OP-03 Reschedule Request
+      description: System A requests rescheduling of an appointment.
+      operationId: requestReschedule
+      security:
+        - OAuth2ClientCredentials:
+            - "installations:update"
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleRequest"
+      responses:
+        "202":
+          description: Reschedule request accepted for dispatcher review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+        "404":
+          $ref: "#/components/responses/StandardError"
+        "409":
+          $ref: "#/components/responses/StandardError"
+
+  /installations/{jobNumber}/cancellations:
+    post:
+      tags:
+        - Installations
+      summary: OP-04 Cancel Job
+      description: System A requests cancellation of an installation job.
+      operationId: cancelInstallation
+      security:
+        - OAuth2ClientCredentials:
+            - "installations:update"
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelInstallationRequest"
+      responses:
+        "200":
+          description: Installation job successfully cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+        "404":
+          $ref: "#/components/responses/StandardError"
+        "409":
+          $ref: "#/components/responses/StandardError"
+
+  /webhooks/schedule-confirmations:
+    post:
+      tags:
+        - Webhooks
+      summary: OP-05 Webhook Schedule Confirmation
+      description: System B notifies System A of confirmed technician assignment and schedule.
+      operationId: webhookScheduleConfirmation
+      security:
+        - OAuth2ClientCredentials:
+            - "webhooks:schedule"
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/XSignature"
+        - $ref: "#/components/parameters/XTimestamp"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleConfirmationWebhookRequest"
+      responses:
+        "200":
+          description: Confirmation processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+
+  /webhooks/status-changes:
+    post:
+      tags:
+        - Webhooks
+      summary: OP-06 Webhook Status Change
+      description: System B notifies System A of job status transition (e.g. In Progress).
+      operationId: webhookStatusChange
+      security:
+        - OAuth2ClientCredentials:
+            - "webhooks:status"
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/XSignature"
+        - $ref: "#/components/parameters/XTimestamp"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusChangeWebhookRequest"
+      responses:
+        "200":
+          description: Status update acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+
+  /webhooks/completions:
+    post:
+      tags:
+        - Webhooks
+      summary: OP-07 Webhook Completion Report
+      description: System B notifies System A that the installation is complete with serial numbers.
+      operationId: webhookCompletion
+      security:
+        - OAuth2ClientCredentials:
+            - "webhooks:completion"
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/XSignature"
+        - $ref: "#/components/parameters/XTimestamp"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompletionWebhookRequest"
+      responses:
+        "200":
+          description: Completion processed, warranties activated, order fulfilled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+
+  /webhooks/inventory-adjustments:
+    post:
+      tags:
+        - Webhooks
+      summary: OP-08 Webhook Inventory Adjustment
+      description: System B transmits hardware parts ledger updates to System A.
+      operationId: webhookInventoryAdjustment
+      security:
+        - OAuth2ClientCredentials:
+            - "webhooks:inventory"
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/XSignature"
+        - $ref: "#/components/parameters/XTimestamp"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryAdjustmentWebhookRequest"
+      responses:
+        "200":
+          description: Ledger movement recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+
+  /catalog:
+    get:
+      tags:
+        - Catalog
+      summary: OP-09 Sync Product Catalog
+      description: System B retrieves the active product catalog from System A.
+      operationId: getCatalog
+      security:
+        - OAuth2ClientCredentials:
+            - "catalog:read"
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Active product catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogResponse"
+
+  /installations/{jobNumber}/feedback:
+    post:
+      tags:
+        - Feedback
+      summary: OP-10 Submit Technician Feedback
+      description: System A routes the technician feedback portion to System B upon customer submission.
+      operationId: submitTechnicianFeedback
+      security:
+        - OAuth2ClientCredentials:
+            - "feedback:write"
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TechnicianFeedbackRequest"
+      responses:
+        "201":
+          description: Feedback received and stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+        "200":
+          description: Idempotent replay of submitted feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+        "409":
+          $ref: "#/components/responses/StandardError"
+        "422":
+          $ref: "#/components/responses/StandardError"
+
+    patch:
+      tags:
+        - Feedback
+      summary: OP-11 Edit Technician Feedback
+      description: Customer updates technician feedback within the allowed 7-day editing window.
+      operationId: updateTechnicianFeedback
+      security:
+        - OAuth2ClientCredentials:
+            - "feedback:write"
+      parameters:
+        - name: jobNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TechnicianFeedbackRequest"
+      responses:
+        "200":
+          description: Feedback updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardSuccessResponse"
+        "409":
+          $ref: "#/components/responses/StandardError"
+        "422":
+          $ref: "#/components/responses/StandardError"
+
+  /stock/availability:
+    get:
+      tags:
+        - Stock
+      summary: OP-12 Check Stock Availability
+      description: System B inspects live stock levels on System A for requested SKUs.
+      operationId: checkStockAvailability
+      security:
+        - OAuth2ClientCredentials:
+            - "stock:read"
+      parameters:
+        - name: sku
+          in: query
+          required: true
+          description: Comma-separated list of SKUs (up to 50)
+          schema:
+            type: string
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Stock availability per SKU
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockAvailabilityResponse"
+
+components:
+  securitySchemes:
+    OAuth2ClientCredentials:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /api/oauth/token
+          scopes:
+            installations:create: Create new installation jobs
+            installations:read: Read installation job details
+            installations:update: Reschedule or cancel jobs
+            feedback:write: Transmit technician feedback
+            stock:read: Inspect stock ledger levels
+            webhooks:schedule: Transmit schedule confirmation
+            webhooks:status: Transmit job progress status
+            webhooks:completion: Transmit completion report
+            webhooks:inventory: Transmit parts adjustments
+            catalog:read: Retrieve catalog products
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    XSignature:
+      name: X-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: "^sha256=[a-f0-9]{64}$"
+    XTimestamp:
+      name: X-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+        format: date-time
+
+  schemas:
+    JobStatus:
+      type: string
+      enum:
+        - "Pending Scheduling"
+        - "Scheduled"
+        - "In Progress"
+        - "Completed"
+        - "Cancelled"
+        - "Reschedule Required"
+
+    TechnicianTag:
+      type: string
+      enum:
+        - "on_time"
+        - "late"
+        - "professional"
+        - "unprofessional"
+        - "clean_work"
+        - "messy_work"
+        - "explained_clearly"
+
+    Address:
+      type: object
+      additionalProperties: false
+      required:
+        - line1
+        - city
+        - province
+        - postalCode
+      properties:
+        line1:
+          type: string
+          maxLength: 200
+        line2:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        province:
+          type: string
+          maxLength: 100
+        postalCode:
+          type: string
+          maxLength: 10
+
+    OrderItemPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+        - quantity
+      properties:
+        sku:
+          type: string
+          maxLength: 64
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+
+    CreateInstallationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - orderNumber
+        - customerName
+        - customerPhone
+        - customerEmail
+        - address
+        - items
+        - preferredStart
+        - preferredEnd
+      properties:
+        orderNumber:
+          type: string
+          pattern: "^GH-[0-9]{8}-[0-9]{6}$"
+        customerName:
+          type: string
+          maxLength: 120
+        customerPhone:
+          type: string
+          pattern: "^\\+63[0-9]{8,10}$"
+        customerEmail:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          $ref: "#/components/schemas/Address"
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OrderItemPayload"
+        preferredStart:
+          type: string
+          format: date-time
+        preferredEnd:
+          type: string
+          format: date-time
+        specialInstructions:
+          type: string
+          maxLength: 500
+
+    InstallationJobResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - jobNumber
+        - orderNumber
+        - status
+        - items
+        - createdAt
+      properties:
+        jobNumber:
+          type: string
+          pattern: "^JOB-[0-9]{8}-[0-9]{6}$"
+        orderNumber:
+          type: string
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        technicianName:
+          type: string
+        scheduledStart:
+          type: string
+          format: date-time
+        scheduledEnd:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemPayload"
+        createdAt:
+          type: string
+          format: date-time
+
+    RescheduleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - requestedStart
+        - requestedEnd
+        - reason
+      properties:
+        requestedStart:
+          type: string
+          format: date-time
+        requestedEnd:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          maxLength: 500
+
+    CancelInstallationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+        - cancelledBy
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+        cancelledBy:
+          type: string
+          enum: ["customer", "store_admin", "dispatcher", "admin"]
+
+    ScheduleConfirmationWebhookRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - jobNumber
+        - orderNumber
+        - technicianName
+        - scheduledStart
+        - scheduledEnd
+        - status
+      properties:
+        jobNumber:
+          type: string
+        orderNumber:
+          type: string
+        technicianName:
+          type: string
+          maxLength: 120
+        scheduledStart:
+          type: string
+          format: date-time
+        scheduledEnd:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/JobStatus"
+
+    StatusChangeWebhookRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - jobNumber
+        - orderNumber
+        - status
+        - timestamp
+      properties:
+        jobNumber:
+          type: string
+        orderNumber:
+          type: string
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        timestamp:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          maxLength: 500
+
+    InstalledUnitPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+        - serialNumber
+      properties:
+        sku:
+          type: string
+          maxLength: 64
+        serialNumber:
+          type: string
+          maxLength: 64
+
+    CompletionWebhookRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - orderNumber
+        - jobNumber
+        - completedAt
+        - result
+        - installedUnits
+      properties:
+        orderNumber:
+          type: string
+        jobNumber:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+        result:
+          type: string
+          enum: ["success", "partial", "failed"]
+        installedUnits:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstalledUnitPayload"
+        notes:
+          type: string
+          maxLength: 2000
+
+    InventoryAdjustmentWebhookRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - transactionId
+        - orderNumber
+        - jobNumber
+        - sku
+        - type
+        - quantity
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        jobNumber:
+          type: string
+        sku:
+          type: string
+          maxLength: 64
+        type:
+          type: string
+          enum: ["used", "returned_unused", "replacement_used"]
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+
+    CatalogProduct:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+        - name
+        - category
+        - requiresInstallation
+        - warrantyMonths
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        brand:
+          type: string
+        pricePhp:
+          type: string
+          pattern: "^[0-9]+\\.[0-9]{2}$"
+        requiresInstallation:
+          type: boolean
+        warrantyMonths:
+          type: integer
+
+    CatalogResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - products
+        - syncedAt
+      properties:
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogProduct"
+        syncedAt:
+          type: string
+          format: date-time
+
+    TechnicianFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - rating
+        - customerFirstName
+        - submittedAt
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 1000
+        technicianTags:
+          type: array
+          items:
+            $ref: "#/components/schemas/TechnicianTag"
+        customerFirstName:
+          type: string
+          maxLength: 60
+        submittedAt:
+          type: string
+          format: date-time
+
+    StockAvailabilityItem:
+      type: object
+      additionalProperties: false
+      required:
+        - sku
+        - onHand
+        - reserved
+        - available
+        - asOf
+      properties:
+        sku:
+          type: string
+        onHand:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+        asOf:
+          type: string
+          format: date-time
+
+    StockAvailabilityResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/StockAvailabilityItem"
+
+    StandardSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorCategory:
+      type: string
+      enum:
+        - VALIDATION_FAILED
+        - AUTHENTICATION_REQUIRED
+        - FORBIDDEN_SCOPE
+        - NOT_FOUND
+        - DUPLICATE_RECORD
+        - IDEMPOTENCY_KEY_CONFLICT
+        - SCHEDULE_CONFLICT
+        - INSUFFICIENT_STOCK
+        - BUSINESS_RULE_VIOLATED
+        - UNEXPECTED_ERROR
+        - SERVICE_UNAVAILABLE
+        - RATE_LIMITED
+
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - category
+        - message
+        - referenceId
+        - correlationId
+      properties:
+        category:
+          $ref: "#/components/schemas/ErrorCategory"
+        message:
+          type: string
+        field:
+          type: string
+        referenceId:
+          type: string
+        correlationId:
+          type: string
+          format: uuid
+
+    StandardErrorPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+
+  responses:
+    StandardError:
+      description: Standardized error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StandardErrorPayload"

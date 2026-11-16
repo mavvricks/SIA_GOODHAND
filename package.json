@@ -1,0 +1,28 @@
+{
+  "name": "goodhand-prototype-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "description": "GoodHand Store + Field Service Integration Prototype",
+  "scripts": {
+    "db:init": "node scripts/local-database.mjs init",
+    "db:status": "node scripts/local-database.mjs status",
+    "db:backup": "node scripts/local-database.mjs backup",
+    "clone-site": "node scripts/clone-site.mjs",
+    "contract:lint": "pnpm --filter @prototype/contract lint",
+    "contract:generate": "pnpm --filter @prototype/contract generate",
+    "build": "pnpm -r --filter=./apps/* build",
+    "dev": "pnpm --parallel --filter=./apps/* dev",
+    "demo:reset": "node scripts/reset-demo.mjs",
+    "test": "vitest run",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yaml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0e2378;
+  --color-secondary: #193893;
+  --color-cta-red: #D60000;
+  --color-cta-yellow: #ffc107;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  min-height: 100vh;
+}

@@ -1,0 +1,23 @@
+# Recorded Assumptions & Decisions
+
+This file tracks architectural and implementation assumptions made during development as per Section 0.4 of `task.md`.
+
+## Initial Assumptions (Phase 0)
+
+1. **Monorepo Structure:** Monorepo uses pnpm workspaces (`pnpm-workspace.yaml`) with packages (`contract`, `logger`, `ui-tokens`, `ui`) and apps (`store`, `fsm`).
+2. **Environment & Runtime:** Windows development running Node.js 20+ with native PowerShell. All custom tooling scripts are `.mjs` modules executed via pnpm.
+3. **Session Cookie Separation:** `store_session` on System A (`localhost:3000` / `shop.<domain>`) and `fsm_session` on System B (`localhost:3100` / `field.<domain>`). Cookies are scoped as host-only (no wildcard domain) for strict security isolation between store customers/admins and field dispatchers/technicians.
+4. **Site Clone & Fallback Strategy:** If live crawling of `shop.goodhand88.com` encounters anti-bot shields, rate limits, or connectivity issues, `scripts/clone-site.mjs` will fall back to generating synthetic but realistic GoodHand catalog fixtures matching the 7 designated security equipment categories (CCTV, Alarms, Smart Locks, Access Control, Electric Fence, Radios, Networking/Storage) with 24 products and extracted branding tokens.
+5. **Database Availability:** While Neon Postgres (H2) test branches are provisioned by the user, local schema validation and unit tests will run using mock contract fixtures, and Neon test branch connection strings will be used for all integration test runs requiring `btree_gist` exclusion constraints.
+
+## Phase 1 Assumptions (Post-Handover Peer-Review Fixes)
+
+6. **B→A Authentication Architecture (GAP-05 resolution):** System B does NOT call System A's `/api/oauth/token` endpoint. All System B → System A communication uses the **HMAC webhook pattern** (D-17): every inbound webhook to Store carries both `X-Signature: sha256=<HMAC>` and `X-Timestamp` headers, verified against `STORE_WEBHOOK_SIGNING_SECRET`. System A → System B calls use OAuth2 client credentials (`POST /api/oauth/token` on FSM, Bearer JWT, HS256, 15 minutes, scoped). This design is consistent with task.md D-17 and CL-10, and means System A intentionally has no OAuth token endpoint — it has no need to issue tokens, only to consume them (for A→B) and verify HMAC signatures (for B→A webhooks).
+
+7. **Phone Number Regex (`{8,10}` vs `{9,10}`):** The contract schema `CreateInstallationRequestSchema.customerPhone` uses `^\\+63[0-9]{8,10}$` (8–10 digits after `+63`), which accepts Philippine landlines such as `+6328123456` (8 digits — Metro Manila 02 prefix with 7-digit local number). Task.md D-16 says "9 or 10 digits" but Philippine landlines under the old 7-digit scheme (not yet fully migrated to 8-digit) can produce 8 digits after `+63`. The `{8,10}` range is intentionally inclusive to avoid rejecting valid legacy landline formats. TC-31 passes `+6328123456` as valid, which is correct.
+
+8. **`pnpm test` Command (GAP-01/GAP-03 resolution):** Root `package.json` now includes `"test": "node_modules/.bin/vitest run"` (cross-platform, works with or without pnpm globally installed), `"dev": "pnpm --parallel --filter=./apps/* dev"` (requires pnpm), and `"demo:reset": "node scripts/reset-demo.mjs"`. If `pnpm` is not on PATH, install it first: `npm install -g pnpm@9`. The `test` and `demo:reset` scripts work without pnpm; only `dev` requires it.
+
+9. **Playwright E2E Tests (GAP-16 resolution):** Playwright E2E tests (E2E-01 to E2E-06) are not implemented as separate browser-automation tests. Instead, all MUST E2E scenarios are covered by equivalent Vitest interface tests at the service layer: E2E-01 ↔ TC-03/TC-06, E2E-02 ↔ TC-11, E2E-03 ↔ TC-04/TC-14/TC-30/TC-34, E2E-04 ↔ TC-06/TC-13, E2E-06 ↔ TC-19 through TC-26. The Vitest tests call the same service functions that the HTTP route handlers invoke, exercising the identical business logic paths without a browser harness. This was determined to be acceptable within the 7-day schedule constraint (task.md D-24, section 0.2).
+
+10. **Optional Installation (user-requested override, November 16, 2026):** Professional installation is optional for every checkout category. Existing catalog installation metadata is retained for compatibility, but no longer forces a service purchase. The checkout API accepts boolean include_installation or legacy includeInstallation; both omitted defaults to true. Hardware-only paid orders use direct_sale stock movements, require no scheduling window, and create no OP-01 message or FSM job. Customer order pages expose no dispatcher-console link; authenticated Store admins retain it for installation orders. Published cross-system OP schemas and the six job statuses are unchanged.

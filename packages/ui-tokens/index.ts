@@ -1,0 +1,120 @@
+// Generated from scripts/clone-site.mjs
+export const tokens = {
+  "colors": {
+    "brand": {
+      "primary": "#0e2378",
+      "secondary": "#193893",
+      "ctaRed": "#D60000",
+      "ctaYellow": "#ffc107"
+    },
+    "ui": {
+      "background": "#f8fafc",
+      "surface": "#ffffff",
+      "surfaceMuted": "#f1f5f9",
+      "border": "#e2e8f0",
+      "borderDark": "#cbd5e1",
+      "textMain": "#0f172a",
+      "textMuted": "#64748b"
+    },
+    "status": {
+      "success": "#10B981",
+      "error": "#EF4444",
+      "warning": "#F59E0B",
+      "info": "#3B82F6"
+    },
+    "jobStatus": {
+      "pendingScheduling": {
+        "bg": "#FEF3C7",
+        "text": "#92400E",
+        "border": "#FCD34D"
+      },
+      "scheduled": {
+        "bg": "#DBEAFE",
+        "text": "#1E40AF",
+        "border": "#93C5FD"
+      },
+      "inProgress": {
+        "bg": "#E0E7FF",
+        "text": "#3730A3",
+        "border": "#A5B4FC"
+      },
+      "completed": {
+        "bg": "#D1FAE5",
+        "text": "#065F46",
+        "border": "#6EE7B7"
+      },
+      "cancelled": {
+        "bg": "#FEE2E2",
+        "text": "#991B1B",
+        "border": "#FCA5A5"
+      },
+      "rescheduleRequired": {
+        "bg": "#FFEDD5",
+        "text": "#9A3412",
+        "border": "#FDBA74"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+    "headings": {
+      "h1": {
+        "fontSize": "2.25rem",
+        "fontWeight": "700",
+        "lineHeight": "2.5rem"
+      },
+      "h2": {
+        "fontSize": "1.875rem",
+        "fontWeight": "700",
+        "lineHeight": "2.25rem"
+      },
+      "h3": {
+        "fontSize": "1.5rem",
+        "fontWeight": "600",
+        "lineHeight": "2rem"
+      },
+      "h4": {
+        "fontSize": "1.25rem",
+        "fontWeight": "600",
+        "lineHeight": "1.75rem"
+      }
+    },
+    "body": {
+      "large": {
+        "fontSize": "1.125rem",
+        "lineHeight": "1.75rem"
+      },
+      "base": {
+        "fontSize": "1rem",
+        "lineHeight": "1.5rem"
+      },
+      "small": {
+        "fontSize": "0.875rem",
+        "lineHeight": "1.25rem"
+      },
+      "xs": {
+        "fontSize": "0.75rem",
+        "lineHeight": "1rem"
+      }
+    }
+  },
+  "shadows": {
+    "soft": "0 2px 8px rgba(0, 0, 0, 0.08)",
+    "medium": "0 4px 16px rgba(0, 0, 0, 0.12)",
+    "strong": "0 8px 24px rgba(0, 0, 0, 0.16)"
+  },
+  "borderRadius": {
+    "sm": "0.25rem",
+    "md": "0.375rem",
+    "lg": "0.5rem",
+    "xl": "0.75rem",
+    "full": "9999px"
+  },
+  "transitions": {
+    "smooth": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    "fast": "all 0.15s ease-in-out"
+  }
+} as const;
+
+export type Tokens = typeof tokens;
+export default tokens;

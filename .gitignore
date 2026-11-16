@@ -1,0 +1,16 @@
+node_modules
+.pnpm-store
+dist
+.next
+out
+.turbo
+*.log
+.env*
+!.env.example
+.drizzle
+.data/
+artifacts/
+*.tsbuildinfo
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

@@ -1,0 +1,16 @@
+{
+  "name": "@prototype/logger",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.5"
+  }
+}
