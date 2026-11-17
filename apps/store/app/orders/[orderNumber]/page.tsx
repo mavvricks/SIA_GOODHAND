@@ -6,7 +6,10 @@ import React from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ordersService } from "@/lib/services/orders-service";
+import {
+  ordersService,
+  paymentMethodLabels,
+} from "@/lib/services/orders-service";
 import { verifySessionToken } from "@/lib/auth";
 import { getProducts } from "@/lib/products";
 import { StatusChip } from "@prototype/ui";
@@ -70,6 +73,15 @@ async function OrderDetailPage({
         </div>
         <OrderRefresh />
         <OrderTracking orderNumber={orderNumber} />
+        <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">Payment</h2>
+          <p className="mt-2 text-sm text-slate-700">
+            {order.paymentMethod
+              ? `${paymentMethodLabels[order.paymentMethod]} (simulated)`
+              : "Simulated payment"}
+            {order.status === "pending_payment" ? " · Pending" : " · Confirmed"}
+          </p>
+        </section>
         {installation ? (
           <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b pb-3">
@@ -107,7 +119,12 @@ async function OrderDetailPage({
                 </p>
               </div>
             </div>
-            <InstallationActions orderNumber={orderNumber} status={order.installationStatus} preferredStart={order.preferredStart} preferredEnd={order.preferredEnd} />
+            <InstallationActions
+              orderNumber={orderNumber}
+              status={order.installationStatus}
+              preferredStart={order.preferredStart}
+              preferredEnd={order.preferredEnd}
+            />
           </section>
         ) : (
           <section className="bg-blue-50 p-6 rounded-xl border border-blue-200 space-y-2">
@@ -188,4 +205,10 @@ async function OrderDetailPage({
   );
 }
 
-export default async function Page(props: { params: Promise<{ orderNumber: string }> }) { return withDatabase("store", () => OrderDetailPage(props), { readOnly: true }); }
+export default async function Page(props: {
+  params: Promise<{ orderNumber: string }>;
+}) {
+  return withDatabase("store", () => OrderDetailPage(props), {
+    readOnly: true,
+  });
+}

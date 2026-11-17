@@ -26,7 +26,17 @@ export interface CheckoutPayload {
   preferredStart?: string;
   preferredEnd?: string;
   specialInstructions?: string;
+  paymentMethod?: PaymentMethod;
 }
+
+export const paymentMethods = ["cash", "qrph", "gcash", "card"] as const;
+export type PaymentMethod = (typeof paymentMethods)[number];
+export const paymentMethodLabels: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  qrph: "QRPH",
+  gcash: "GCash",
+  card: "Card",
+};
 
 export const deliveryStatuses = [
   "Order received",
@@ -50,6 +60,7 @@ export interface StoredOrder {
   orderNumber: string;
   status: "pending_payment" | "paid" | "fulfilled" | "cancelled";
   totalPhp: string;
+  paymentMethod?: PaymentMethod;
   includeInstallation: boolean;
   rescheduleCount?: number;
   customerRequestKeys?: string[];
@@ -138,6 +149,14 @@ export class OrdersService {
     correlationId: string,
     simulatePaymentFailure: boolean = false,
   ): Promise<{ order: StoredOrder; outboxId?: string }> {
+    if (
+      payload.paymentMethod !== undefined &&
+      !paymentMethods.includes(payload.paymentMethod)
+    )
+      throw Object.assign(new Error("Choose a valid payment method"), {
+        category: "VALIDATION_FAILED",
+      });
+    const paymentMethod = payload.paymentMethod ?? "card";
     for (const flag of [
       payload.include_installation,
       payload.includeInstallation,
@@ -220,6 +239,7 @@ export class OrdersService {
         orderNumber,
         status: "pending_payment",
         totalPhp: this.calculateTotal(payload.items),
+        paymentMethod,
         includeInstallation,
         customerName: payload.customerName,
         customerPhone: normalizedPhone,
@@ -256,6 +276,7 @@ export class OrdersService {
       orderNumber,
       status: "paid",
       totalPhp: this.calculateTotal(payload.items),
+      paymentMethod,
       includeInstallation,
       customerName: payload.customerName,
       customerPhone: normalizedPhone,
@@ -334,11 +355,26 @@ export class OrdersService {
   ) {
     const order = this.orders.get(orderNumber);
     if (order) {
-      if (status === 'Cancelled' && order.includeInstallation && order.installationStatus !== 'Cancelled') {
-        for (const item of order.items) stockLedger.applyMovement(`installation-cancelled:${orderNumber}:${item.sku}`, item.sku, 'installation_cancelled_sale', item.quantity, orderNumber);
+      if (
+        status === "Cancelled" &&
+        order.includeInstallation &&
+        order.installationStatus !== "Cancelled"
+      ) {
+        for (const item of order.items)
+          stockLedger.applyMovement(
+            `installation-cancelled:${orderNumber}:${item.sku}`,
+            item.sku,
+            "installation_cancelled_sale",
+            item.quantity,
+            orderNumber,
+          );
       }
       order.installationStatus = status;
-      if (["Pending Scheduling", "Reschedule Required", "Cancelled"].includes(status)) {
+      if (
+        ["Pending Scheduling", "Reschedule Required", "Cancelled"].includes(
+          status,
+        )
+      ) {
         order.technicianName = undefined;
         order.scheduledStart = undefined;
         order.scheduledEnd = undefined;
@@ -460,4 +496,8 @@ export class OrdersService {
   }
 }
 
-export const ordersService = attachPersistence(new OrdersService(), "store", "orders") as OrdersService;
+export const ordersService = attachPersistence(
+  new OrdersService(),
+  "store",
+  "orders",
+) as OrdersService;

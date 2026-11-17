@@ -18,6 +18,26 @@ const input = {
 };
 beforeEach(() => stockLedger.seedInventory());
 describe("Delivery tracking and order ownership", () => {
+  it("records each simulated payment choice and rejects unknown methods", async () => {
+    const service = new OrdersService();
+    for (const method of ["cash", "qrph", "gcash", "card"] as const) {
+      const { order } = await service.processCheckout(
+        { ...input, paymentMethod: method },
+        `payment-${method}`,
+        "test",
+      );
+      expect(order.paymentMethod).toBe(method);
+      expect(order.status).toBe("paid");
+    }
+    await expect(
+      service.processCheckout(
+        { ...input, paymentMethod: "unknown" as any },
+        "payment-invalid",
+        "test",
+      ),
+    ).rejects.toThrow("valid payment method");
+    expect(service.listOrders()).toHaveLength(4);
+  });
   it("tracks hardware delivery through all stages without installation dispatch", async () => {
     const service = new OrdersService();
     const before = outboxEngine.getOutboxRows().length;

@@ -34,6 +34,15 @@ export default function CheckoutPage() {
     specialInstructions: "",
   });
   const [simulateFailure, setSimulateFailure] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash" | "qrph" | "gcash" | "card"
+  >("gcash");
+  const paymentOptions = [
+    { value: "cash", label: "Cash", detail: "Simulated cash payment" },
+    { value: "qrph", label: "QRPH", detail: "Simulated QR payment" },
+    { value: "gcash", label: "GCash", detail: "Simulated e-wallet payment" },
+    { value: "card", label: "Card", detail: "Simulated card payment" },
+  ] as const;
   useEffect(() => {
     if (user)
       setForm((old) => ({
@@ -98,6 +107,7 @@ export default function CheckoutPage() {
               }
             : {}),
           simulatePaymentFailure: simulateFailure,
+          paymentMethod,
         }),
       });
       const data = await res.json();
@@ -238,7 +248,40 @@ export default function CheckoutPage() {
             </section>
             <section className="bg-white rounded-xl border p-5 space-y-3">
               <h2 className="font-bold">4. Payment Method</h2>
-              <p>Simulated Immediate Gateway</p>
+              <fieldset className="grid gap-3 sm:grid-cols-2">
+                <legend className="text-sm text-slate-600 mb-3">
+                  Select a simulated payment method
+                </legend>
+                {paymentOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer ${
+                      paymentMethod === option.value
+                        ? "border-yellow-500 bg-yellow-50"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={option.value}
+                      checked={paymentMethod === option.value}
+                      onChange={() => setPaymentMethod(option.value)}
+                      className="mt-1"
+                    />
+                    <span>
+                      <strong className="block">{option.label}</strong>
+                      <span className="text-sm text-slate-600">
+                        {option.detail}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              <p className="text-sm text-slate-600">
+                Demo only: no money is charged and no card or wallet details are
+                collected.
+              </p>
               <label className="flex gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -275,6 +318,15 @@ export default function CheckoutPage() {
                   </p>
                 )}
                 <p>Total: {money(total)}</p>
+                <p>
+                  Payment:{" "}
+                  {
+                    paymentOptions.find(
+                      (option) => option.value === paymentMethod,
+                    )?.label
+                  }{" "}
+                  (simulated)
+                </p>
                 <p className="text-sm">
                   Payment is simulated in this demo. Check your items, delivery
                   address and service choice before confirming.

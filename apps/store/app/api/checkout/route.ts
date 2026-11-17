@@ -45,6 +45,7 @@ async function handlePOST(req: NextRequest) {
         orderNumber: order.orderNumber,
         status: order.status,
         totalPhp: order.totalPhp,
+        paymentMethod: order.paymentMethod,
         includeInstallation: order.includeInstallation,
         include_installation: order.includeInstallation,
         installationStatus: order.installationStatus,
