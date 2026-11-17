@@ -7,11 +7,13 @@ import {
   ClipboardList,
   FlaskConical,
   LogOut,
+  Menu,
   RadioTower,
   Truck,
   UserRound,
   Users,
   Wrench,
+  X,
 } from "lucide-react";
 import type { UserSession } from "@/lib/auth";
 
@@ -20,8 +22,11 @@ export function FsmHeader({ title }: { title?: string }) {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => setMenuOpen(false), [pathname]);
 
   const refresh = useCallback(async () => {
     try {
@@ -81,98 +86,43 @@ export function FsmHeader({ title }: { title?: string }) {
   ];
 
   return (
-    <header className="border-t-[3px] border-[#d71920] bg-[#0b1c2d] text-white shadow-sm">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex min-h-[74px] flex-wrap items-center justify-between gap-3 py-3">
-          <Link
-            href="/"
-            className="flex min-w-0 items-center gap-3"
-            aria-label="GoodHand Field Service home"
-          >
-            <img
-              src="/brand/goodhand-logo.png"
-              alt="GoodHand Security Products"
-              width={118}
-              height={40}
-              className="h-10 w-auto object-contain"
-            />
-            <span
-              className="hidden h-8 w-px bg-white/20 sm:block"
-              aria-hidden="true"
-            />
-            <span className="min-w-0">
-              <strong className="block truncate text-sm font-bold leading-tight sm:text-base">
-                {title || "Field Service"}
-              </strong>
-              <span className="block text-[11px] text-slate-300">
-                Dispatch & technician operations
-              </span>
-            </span>
+    <>
+      <div className="flex h-16 items-center justify-between border-t-[3px] border-[#d71920] bg-[#0b1c2d] px-4 text-white md:hidden">
+        <Link href="/" className="flex items-center gap-2 font-bold" aria-label="GoodHand Field Service home">
+          <img src="/brand/goodhand-logo.png" alt="GoodHand" width={92} height={30} className="h-8 w-auto object-contain" />
+          <span className="border-l border-white/20 pl-2 text-sm">Field Service</span>
+        </Link>
+        <button type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="fsm-sidebar" className="rounded-lg border border-white/20 p-2">
+          <Menu size={20} />
+        </button>
+      </div>
+      {menuOpen && <button type="button" aria-label="Close navigation" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-40 bg-slate-950/60 md:hidden" />}
+      <aside id="fsm-sidebar" className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-white/10 border-t-[3px] border-t-[#d71920] bg-[#0b1c2d] text-white shadow-xl transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 md:shadow-none ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-start justify-between border-b border-white/10 px-5 py-6">
+          <Link href="/" className="min-w-0" aria-label="GoodHand Field Service home" onClick={() => setMenuOpen(false)}>
+            <img src="/brand/goodhand-logo.png" alt="GoodHand Security Products" width={128} height={40} className="h-10 w-auto object-contain" />
+            <strong className="mt-4 block text-base font-bold">{title || "Field Service"}</strong>
+            <span className="block text-[11px] text-slate-300">Dispatch & technician operations</span>
           </Link>
-          <div className="flex items-center gap-2">
-            {loading ? (
-              <span className="text-xs text-slate-300" role="status">
-                Checking session…
-              </span>
-            ) : user ? (
-              <>
-                <span
-                  className="hidden items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-2 text-xs text-slate-200 sm:flex"
-                  aria-label="Signed-in account"
-                >
-                  <UserRound size={14} className="text-[#ffc400]" />
-                  <span className="max-w-36 truncate">{user.fullName}</span>
-                  <span className="text-slate-400">· {user.role}</span>
-                </span>
-                <button
-                  type="button"
-                  disabled={signingOut}
-                  onClick={() => void logout()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-3 py-2 text-xs font-semibold transition hover:bg-white/10 disabled:opacity-50"
-                >
-                  <LogOut size={15} />{" "}
-                  {signingOut ? "Signing out…" : "Sign out"}
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-lg bg-[#ffc400] px-4 py-2 text-sm font-bold text-[#0b1c2d] hover:bg-[#eeb500]"
-              >
-                Sign in
-              </Link>
-            )}
-          </div>
+          <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close navigation" className="rounded-lg p-1 hover:bg-white/10 md:hidden"><X size={20} /></button>
         </div>
-        <nav
-          aria-label="Field service navigation"
-          className="-mx-4 flex items-center gap-1 overflow-x-auto border-t border-white/10 px-4 py-2 text-sm sm:mx-0 sm:px-0"
-        >
+        <nav aria-label="Field service navigation" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-5 text-sm">
+          <span className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Workspace</span>
           {links.map(({ href, label, icon: Icon }) => {
-            const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition ${active ? "bg-white/15 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
-              >
-                <Icon
-                  size={15}
-                  className={active ? "text-[#ffc400]" : undefined}
-                />
-                {label}
-              </Link>
-            );
+            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return <Link key={href} href={href} aria-current={active ? "page" : undefined} onClick={() => setMenuOpen(false)} className={`flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-3 font-semibold transition ${active ? "border-[#ffc400] bg-white/10 text-white" : "border-transparent text-slate-300 hover:bg-white/10 hover:text-white"}`}>
+              <Icon size={18} className={active ? "text-[#ffc400]" : undefined} />{label}
+            </Link>;
           })}
         </nav>
-        {error && (
-          <p role="alert" className="pb-2 text-sm text-red-200">
-            {error}
-          </p>
-        )}
-      </div>
-    </header>
+        <div className="border-t border-white/10 p-4">
+          {loading ? <span className="text-xs text-slate-300" role="status">Checking session…</span> : user ? <>
+            <div className="mb-3 flex items-center gap-2 text-xs text-slate-200" aria-label="Signed-in account"><UserRound size={17} className="shrink-0 text-[#ffc400]" /><span className="min-w-0"><strong className="block truncate">{user.fullName}</strong><span className="text-slate-400">{user.role}</span></span></div>
+            <button type="button" disabled={signingOut} onClick={() => void logout()} className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50"><LogOut size={15} />{signingOut ? "Signing out…" : "Sign out"}</button>
+          </> : <Link href="/login" className="block rounded-lg bg-[#ffc400] px-4 py-2 text-center text-sm font-bold text-[#0b1c2d]">Sign in</Link>}
+          {error && <p role="alert" className="mt-2 text-xs text-red-200">{error}</p>}
+        </div>
+      </aside>
+    </>
   );
 }
