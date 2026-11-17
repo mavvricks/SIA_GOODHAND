@@ -16,7 +16,7 @@ In each existing Neon project (`goodhand-store` and `goodhand-fsm`), open **prod
 ## 3. Create two Vercel projects
 
 1. Sign in to Vercel through GitHub. Select **Add New → Project → Import Git Repository → mavvricks/SIA_GOODHAND**. If absent, grant the Vercel GitHub app repository access.
-2. Name the first project `goodhand-store`. Set **Framework Preset: Next.js**, **Root Directory: apps/store**, and enable **Include source files outside the Root Directory in the Build Step**. Leave output at the Next.js default. Select Node.js **24.x** in **Settings → General → Node.js Version**. Use the package build command `pnpm build` or Vercel's detected Next.js command; do not use the monorepo root build for a single project.
+2. Name the first project `goodhand-store`. Set **Framework Preset: Next.js**, **Root Directory: apps/store**, and enable **Include source files outside the Root Directory in the Build Step**. Leave output at the Next.js default. Select Node.js **24.x** in **Settings → Build and Deployment → Node.js Version** (both app manifests also pin 24.x). Use the package build command `pnpm build` or Vercel's detected Next.js command; do not use the monorepo root build for a single project. Leave **Install Command** on automatic detection.
 3. Import the same repository again as `goodhand-fsm`, with Root Directory `apps/fsm` and the same framework/source/Node settings.
 4. Add the environment variables below before deploying. Copy each stable `https://<project>.vercel.app` address from **Settings → Domains**. If you add custom domains later, update all cross-system URLs and redeploy both projects. Changes to env vars require a redeployment.
 
@@ -37,6 +37,7 @@ In each project's **Settings → Environment Variables**, add these to **Product
 | `CRON_SECRET_STORE`                | Unique strong random secret                                                                       |
 | `INSTALLATION_INTEGRATION_ENABLED` | `true`                                                                                            |
 | `DEMO_MODE`                        | `false`                                                                                           |
+| `ENABLE_EXPERIMENTAL_COREPACK`     | `1` to use the repository's pinned pnpm 9                                                         |
 
 | FSM project                    | Value                                      |
 | ------------------------------ | ------------------------------------------ |
@@ -49,6 +50,7 @@ In each project's **Settings → Environment Variables**, add these to **Product
 | `FSM_PUBLIC_URL`               | `https://<fsm-domain>`                     |
 | `CRON_SECRET_FSM`              | Different strong random secret             |
 | `DEMO_MODE`                    | `false`                                    |
+| `ENABLE_EXPERIMENTAL_COREPACK` | `1` to use the repository's pinned pnpm 9 |
 
 Generate each new secret separately in a private terminal, for example `node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"`. Existing ignored `.env.local` files also contain generated values. Copy shared values exactly where indicated. Do not set `GOODHAND_E2E_SQLITE` or test database URLs in Vercel. The code rejects a Vercel production runtime with no own database URL or SQLite mode.
 
