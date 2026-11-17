@@ -36,7 +36,7 @@ const money = (amount: number) =>
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, clearCart } = useCart();
+  const { items, isReady, clearCart } = useCart();
   const { user } = useAuth();
   const [review, setReview] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,6 +81,10 @@ export default function CheckoutPage() {
     event.preventDefault();
     if (submitting.current) return;
     setError("");
+    if (!isReady) {
+      setError("Your cart is still loading. Please try again in a moment.");
+      return;
+    }
     if (!items.length) {
       setError("Your cart is empty. Add products before checking out.");
       return;

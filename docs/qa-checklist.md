@@ -85,3 +85,5 @@
 | **QA-39** | Role and ownership boundaries | Technician assignment request returns 403; another technician's job action returns 404; unsigned job access returns 401 | | |
 | **QA-40** | Hardware-only checkout | Paid Store order deducts stock, creates no OP-01 or FSM job, and displays Self-Installation / Hardware Only without technician details | | |
 | **QA-41** | Customer dispatcher-link visibility | Customer and unsigned sessions cannot see the dispatcher-console link; authenticated Store admins can see it for installation orders | | |
+| **QA-42** | Guest and customer cart isolation | Add a guest item, sign in, and confirm it is absent from the account cart. Add an account item, sign out, and confirm it is absent from the guest cart. Sign in again to confirm only that account's items return; another account sees neither cart. Repeat with two tabs and after refresh. | | |
+| **QA-43** | Checkout catalog price authority | Change an item price in browser storage or the checkout request; the server rejects the altered price and does not create an order. | | |

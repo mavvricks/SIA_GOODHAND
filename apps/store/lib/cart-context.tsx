@@ -1,19 +1,19 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './auth-context';
+import {
+  cartStorageKey,
+  LEGACY_CART_STORAGE_KEY,
+  readCart,
+  type CartItem,
+} from './cart-storage';
 
-export interface CartItem {
-  sku: string;
-  name: string;
-  category: string;
-  pricePhp: string;
-  quantity: number;
-  requiresInstallation: boolean;
-  imagePath?: string;
-}
+export type { CartItem } from './cart-storage';
 
 interface CartContextType {
   items: CartItem[];
+  isReady: boolean;
   addItem: (product: {
     sku: string;
     name: string;
@@ -33,50 +33,39 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'gh_store_cart_v1';
-
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const { user, isLoading } = useAuth();
+  const storageKey = isLoading ? null : cartStorageKey(user?.userId ?? null);
+  const [cart, setCart] = useState<{ key: string; items: CartItem[] } | null>(null);
   const [toast, setToast] = useState<{ message: string; sku?: string } | null>(null);
+  const isReady = storageKey !== null && cart?.key === storageKey;
+  const items = isReady && cart ? cart.items : [];
 
-  // Initialize from localStorage on client
+  // Switching identity immediately hides the previous cart. The old shared
+  // key is discarded rather than copied into either private scope.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(CART_STORAGE_KEY);
-      if (stored) {
-        setItems(JSON.parse(stored));
-      } else {
-        // Pre-populate with default CCTV item so direct demo of cart works out of the box
-        const defaultItem: CartItem = {
-          sku: 'GH-CCTV-001',
-          name: 'Dahua DH-IPC-HDBW1431E-S4 4MP Entry IR Fixed Dome Camera',
-          category: 'CCTV',
-          pricePhp: '3850.00',
-          quantity: 2,
-          requiresInstallation: true,
-          imagePath: '/_clone/images/cctv-dahua-dome-4mp.svg'
-        };
-        setItems([defaultItem]);
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([defaultItem]));
-      }
-    } catch {
-      // Fallback
-    } finally {
-      setIsHydrated(true);
-    }
-  }, []);
+    if (!storageKey) return;
+    try { localStorage.removeItem(LEGACY_CART_STORAGE_KEY); } catch {}
+    setCart(previous => previous?.key === storageKey
+      ? previous
+      : { key: storageKey, items: readCart(localStorage, storageKey) });
+    setToast(null);
+  }, [storageKey]);
 
-  // Sync to localStorage
   useEffect(() => {
-    if (isHydrated) {
-      try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-      } catch {
-        // Ignore storage errors
-      }
-    }
-  }, [items, isHydrated]);
+    if (!cart || !storageKey || cart.key !== storageKey) return;
+    try { localStorage.setItem(storageKey, JSON.stringify(cart.items)); } catch {}
+  }, [cart, isReady, storageKey]);
+
+  const updateItems = (change: (previous: CartItem[]) => CartItem[]) => {
+    if (!storageKey) return;
+    setCart(previous => ({
+      key: storageKey,
+      items: change(previous?.key === storageKey
+        ? previous.items
+        : readCart(localStorage, storageKey)),
+    }));
+  };
 
   const addItem = (product: {
     sku: string;
@@ -86,7 +75,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     requires_installation: boolean;
     image_path?: string;
   }, quantity = 1) => {
-    setItems(prev => {
+    updateItems(prev => {
       const existing = prev.find(i => i.sku === product.sku);
       if (existing) {
         return prev.map(i =>
@@ -121,7 +110,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeItem = (sku: string) => {
-    setItems(prev => prev.filter(i => i.sku !== sku));
+    updateItems(prev => prev.filter(i => i.sku !== sku));
   };
 
   const updateQuantity = (sku: string, quantity: number) => {
@@ -129,16 +118,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeItem(sku);
       return;
     }
-    setItems(prev =>
+    updateItems(prev =>
       prev.map(i => (i.sku === sku ? { ...i, quantity: Math.min(99, quantity) } : i))
     );
   };
 
   const clearCart = () => {
-    setItems([]);
-    try {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    } catch {}
+    updateItems(() => []);
   };
 
   const dismissToast = () => setToast(null);
@@ -153,6 +139,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        isReady,
         addItem,
         removeItem,
         updateQuantity,

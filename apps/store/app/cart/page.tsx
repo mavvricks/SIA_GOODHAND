@@ -16,7 +16,7 @@ import { useCart } from "@/lib/cart-context";
 import { getProductImage } from "@/lib/product-images";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, clearCart, subtotal, totalCount } =
+  const { items, isReady, updateQuantity, removeItem, clearCart, subtotal, totalCount } =
     useCart();
 
   return (
@@ -43,7 +43,11 @@ export default function CartPage() {
           </div>
         </div>
 
-        {items.length === 0 ? (
+        {!isReady ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-sm text-slate-600" role="status">
+            Loading your cart…
+          </div>
+        ) : items.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs space-y-4">
             <div className="w-16 h-16 bg-blue-50 text-[#0e2378] rounded-full flex items-center justify-center mx-auto">
               <ShoppingCart className="w-8 h-8" />

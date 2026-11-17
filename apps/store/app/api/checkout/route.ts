@@ -3,6 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 import { persistService } from "../../../../../packages/local-db/index.mjs";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { ordersService } from "@/lib/services/orders-service";
+import { getProducts } from "@/lib/products";
+import { verifiedCheckoutItems } from "@/lib/checkout-items";
 import {
   drainStoreOutbox,
   startLocalOutboxWorker,
@@ -27,6 +29,7 @@ async function handlePOST(req: NextRequest) {
       );
     const body = await req.json();
     body.customerEmail = user.email;
+    body.items = verifiedCheckoutItems(body.items, getProducts());
     const { order, outboxId } = await ordersService.processCheckout(
       body,
       `${user.userId}:${idempotencyKey}`,
