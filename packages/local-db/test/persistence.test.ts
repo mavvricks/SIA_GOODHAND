@@ -28,6 +28,15 @@ function temporary() {
 }
 
 describe("Local SQLite persistence", () => {
+  it("uses an isolated in-memory database while Next collects build routes", () => {
+    const directory = temporary();
+    vi.stubEnv("GOODHAND_DATA_DIR", directory);
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    const database = getLocalDatabase("fsm");
+    const files = database.connection.prepare("PRAGMA database_list").all();
+    expect(files[0].file).toBe("");
+    expect(fs.readdirSync(directory)).toEqual([]);
+  });
   it("restores domain Maps, nested changes, and counters from the database", async () => {
     vi.stubEnv("GOODHAND_DATA_DIR", temporary());
     class Example {

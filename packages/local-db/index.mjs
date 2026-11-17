@@ -115,7 +115,8 @@ export function getLocalDatabase(system) {
     );
   const directory = process.env.GOODHAND_DATA_DIR || path.join(root, ".data");
   const filename =
-    process.env.NODE_ENV === "test" && !process.env.GOODHAND_DATA_DIR
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    (process.env.NODE_ENV === "test" && !process.env.GOODHAND_DATA_DIR)
       ? ":memory:"
       : path.resolve(directory, `${system}.sqlite`);
   const key = `${system}:${filename}`;
