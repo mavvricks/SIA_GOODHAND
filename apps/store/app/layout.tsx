@@ -6,6 +6,10 @@ import { StoreProviders } from '@/components/StoreProviders';
 export const metadata: Metadata = {
   title: 'GoodHand Security Products Store',
   description: 'Security hardware and professional installation service.',
+  icons: {
+    icon: '/brand/goodhand-logo.png',
+    shortcut: '/brand/goodhand-logo.png',
+  },
   robots: {
     index: false,
     follow: false

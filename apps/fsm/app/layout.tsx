@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "GoodHand Field Service Management - Dispatch Console",
   description:
     "Technician dispatch, loading verification, and field job completion.",
+  icons: {
+    icon: "/brand/goodhand-logo.png",
+    shortcut: "/brand/goodhand-logo.png",
+  },
   robots: {
     index: false,
     follow: false,
