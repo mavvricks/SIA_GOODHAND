@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: 'GoodHand Security Products Store',
   description: 'Security hardware and professional installation service.',
   icons: {
-    icon: '/brand/goodhand-logo.png',
-    shortcut: '/brand/goodhand-logo.png',
+    icon: '/brand/goodhand-camera.svg',
+    shortcut: '/brand/goodhand-camera.svg',
   },
   robots: {
     index: false,

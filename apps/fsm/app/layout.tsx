@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description:
     "Technician dispatch, loading verification, and field job completion.",
   icons: {
-    icon: "/brand/goodhand-logo.png",
-    shortcut: "/brand/goodhand-logo.png",
+    icon: "/brand/goodhand-camera.svg",
+    shortcut: "/brand/goodhand-camera.svg",
   },
   robots: {
     index: false,
