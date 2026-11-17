@@ -1,7 +1,8 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse } from 'next/server';
 import { outboxEngine, persistOutboxState } from '@/lib/outbox/outbox-engine';
 
-export async function POST() {
+async function handlePOST() {
   const failedRows = outboxEngine.getFailedRows();
   if (failedRows.length === 0) {
     // If no failed queue, find most recent outbox message
@@ -25,3 +26,5 @@ export async function POST() {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

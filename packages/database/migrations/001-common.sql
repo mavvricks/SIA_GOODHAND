@@ -1,0 +1,11 @@
+CREATE SCHEMA IF NOT EXISTS goodhand;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE TABLE IF NOT EXISTS goodhand.schema_migrations(version integer PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS goodhand.metadata(service text NOT NULL, field text NOT NULL, value jsonb NOT NULL, PRIMARY KEY(service,field));
+CREATE TABLE IF NOT EXISTS goodhand.users(id text PRIMARY KEY, email text NOT NULL, password_hash text NOT NULL, role text NOT NULL, full_name text NOT NULL, active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON goodhand.users(lower(email));
+CREATE TABLE IF NOT EXISTS goodhand.sessions(id text PRIMARY KEY, user_id text NOT NULL REFERENCES goodhand.users(id), expires_at bigint NOT NULL, created_at bigint NOT NULL);
+CREATE INDEX IF NOT EXISTS sessions_user_id ON goodhand.sessions(user_id);
+CREATE INDEX IF NOT EXISTS sessions_expiry ON goodhand.sessions(expires_at);
+CREATE TABLE IF NOT EXISTS goodhand.imports(source text PRIMARY KEY, imported_at timestamptz NOT NULL DEFAULT now(), summary jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS goodhand.inbound_messages(id text PRIMARY KEY, hash text NOT NULL, response jsonb NOT NULL, received_at timestamptz NOT NULL DEFAULT now());

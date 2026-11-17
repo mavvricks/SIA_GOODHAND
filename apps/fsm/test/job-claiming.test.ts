@@ -148,4 +148,17 @@ describe("Scheduling buffer and emergency release", () => {
       store.unclaimJob(job, "tech-uuid-1", "Emergency", "test"),
     ).toThrow("Only scheduled");
   });
+  it('releases the previous appointment and permits a new claim after a customer reschedule', async () => {
+    const store = new JobsStore();
+    const jobNumber = await pending(store, '000093');
+    await store.assignPendingJob(jobNumber, 'tech-uuid-1', 'initial');
+    const first = store.getJob(jobNumber)!;
+    const oldStart = first.scheduledStart!;
+    const oldEnd = first.scheduledEnd!;
+    await store.requestReschedule(jobNumber, '2030-01-12T09:00:00+08:00', '2030-01-12T11:00:00+08:00', 'Customer unavailable', 'test', 'reschedule-key');
+    expect(store.getJob(jobNumber)).toMatchObject({ status: 'Reschedule Required', technicianId: undefined });
+    expect(store.checkAppointmentOverlap('tech-uuid-1', oldStart, oldEnd)).toBe(false);
+    await store.assignPendingJob(jobNumber, 'tech-uuid-1', 'new-time');
+    expect(store.getJob(jobNumber)?.status).toBe('Scheduled');
+  });
 });

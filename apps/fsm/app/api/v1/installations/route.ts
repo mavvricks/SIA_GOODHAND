@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
@@ -5,7 +6,7 @@ import { jobsStore } from '@/lib/services/jobs-store';
 import { logger } from '@prototype/logger';
 import { simulationService } from '@/lib/simulation/simulation-service';
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   if (simulationService.getFlag('partner_outage_simulated')) return createErrorResponse('SERVICE_UNAVAILABLE', 'System B outage simulation is active');
   const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
   const idempotencyKey = req.headers.get('idempotency-key');
@@ -68,3 +69,17 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });
+
+async function handleGET(req: NextRequest) {
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  const auth = await verifyServiceToken(req.headers.get('authorization'), 'installations:read');
+  if (!auth.valid) return createErrorResponse(auth.errorCategory || 'AUTHENTICATION_REQUIRED', 'Valid installations:read Bearer token required', correlationId);
+  const orderNumber = new URL(req.url).searchParams.get('orderNumber');
+  if (!orderNumber || !/^GH-\d{8}-\d{6}$/.test(orderNumber)) return createErrorResponse('VALIDATION_FAILED', 'Valid orderNumber is required', correlationId);
+  const job = jobsStore.listJobs().find(item => item.orderNumber === orderNumber);
+  if (!job) return createErrorResponse('NOT_FOUND', 'Installation job not found', correlationId);
+  return NextResponse.json({ jobNumber: job.jobNumber, orderNumber, status: job.status, technicianName: job.technicianName, scheduledStart: job.scheduledStart, scheduledEnd: job.scheduledEnd, items: job.items.map(item => ({ sku: item.sku, quantity: item.quantity })), createdAt: job.createdAt });
+}
+export const GET = databaseRoute('fsm', handleGET, { readOnly: true });

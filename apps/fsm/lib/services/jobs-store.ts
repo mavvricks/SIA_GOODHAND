@@ -481,7 +481,7 @@ export class JobsStore {
       throw Object.assign(new Error("Job not found"), {
         category: "NOT_FOUND",
       });
-    if (job.technicianId || job.status !== "Pending Scheduling")
+    if (job.technicianId || !["Pending Scheduling", "Reschedule Required"].includes(job.status))
       throw Object.assign(
         new Error(
           "This job has already been claimed or assigned. Refresh the queue.",
@@ -513,7 +513,15 @@ export class JobsStore {
     requestedEnd: string,
     reason: string,
     correlationId: string,
+    idempotencyKey?: string,
   ): Promise<StoredJob> {
+    const replayKey = idempotencyKey && `OP-03:${idempotencyKey}`;
+    const requestHash = this.hashPayload({ jobNumber, requestedStart, requestedEnd, reason });
+    const prior = replayKey && this.processedMessages.get(replayKey);
+    if (prior) {
+      if (prior.requestHash !== requestHash) throw Object.assign(new Error('Idempotency key reused for a different request'), { category: 'IDEMPOTENCY_KEY_CONFLICT' });
+      return this.jobs.get(jobNumber)!;
+    }
     const job = this.jobs.get(jobNumber);
     if (!job) {
       const err: any = new Error(`Job ${jobNumber} not found`);
@@ -521,7 +529,7 @@ export class JobsStore {
       throw err;
     }
 
-    if (job.status === "Completed" || job.status === "Cancelled") {
+    if (!["Pending Scheduling", "Scheduled"].includes(job.status)) {
       const err: any = new Error(
         `Cannot reschedule job ${jobNumber} in ${job.status} state`,
       );
@@ -537,6 +545,10 @@ export class JobsStore {
     }
 
     job.status = "Reschedule Required";
+    job.technicianId = undefined;
+    job.technicianName = undefined;
+    job.scheduledStart = undefined;
+    job.scheduledEnd = undefined;
     job.preferredStart = requestedStart;
     job.preferredEnd = requestedEnd;
     job.specialInstructions = job.specialInstructions
@@ -544,6 +556,9 @@ export class JobsStore {
       : `Reschedule reason: ${reason}`;
     job.updatedAt = new Date().toISOString();
     job.version += 1;
+
+    this.queueStatusChange(job, correlationId);
+    if (replayKey) this.processedMessages.set(replayKey, { idempotencyKey: replayKey, operationId: 'OP-03', requestHash, responseStatus: 202, responseBody: { success: true }, createdAt: job.updatedAt });
 
     return job;
   }
@@ -554,7 +569,15 @@ export class JobsStore {
     reason: string,
     cancelledBy: string,
     correlationId: string,
+    idempotencyKey?: string,
   ): Promise<StoredJob> {
+    const replayKey = idempotencyKey && `OP-04:${idempotencyKey}`;
+    const requestHash = this.hashPayload({ jobNumber, reason, cancelledBy });
+    const prior = replayKey && this.processedMessages.get(replayKey);
+    if (prior) {
+      if (prior.requestHash !== requestHash) throw Object.assign(new Error('Idempotency key reused for a different request'), { category: 'IDEMPOTENCY_KEY_CONFLICT' });
+      return this.jobs.get(jobNumber)!;
+    }
     const job = this.jobs.get(jobNumber);
     if (!job) {
       const err: any = new Error(`Job ${jobNumber} not found`);
@@ -562,7 +585,7 @@ export class JobsStore {
       throw err;
     }
 
-    if (job.status === "In Progress" || job.status === "Completed") {
+    if (["In Progress", "Completed", "Cancelled"].includes(job.status)) {
       const err: any = new Error(
         `Cannot cancel job ${jobNumber} in ${job.status} state`,
       );
@@ -584,7 +607,14 @@ export class JobsStore {
     job.updatedAt = new Date().toISOString();
     job.version += 1;
 
+    this.queueStatusChange(job, correlationId);
+    if (replayKey) this.processedMessages.set(replayKey, { idempotencyKey: replayKey, operationId: 'OP-04', requestHash, responseStatus: 200, responseBody: { success: true }, createdAt: job.updatedAt });
+
     return job;
+  }
+
+  private queueStatusChange(job: StoredJob, correlationId: string) {
+    this.outboxMessages.push({ id: crypto.randomUUID(), operationId: 'OP-06', payload: { jobNumber: job.jobNumber, orderNumber: job.orderNumber, status: job.status, timestamp: job.updatedAt }, idempotencyKey: crypto.randomUUID(), correlationId, status: 'pending', attempts: 0, nextAttemptAt: job.updatedAt, createdAt: job.updatedAt });
   }
 
   public listTechnicianJobs(technicianId: string): StoredJob[] {
@@ -1121,8 +1151,4 @@ export class JobsStore {
   }
 }
 
-const runtime = globalThis as typeof globalThis & { goodhandJobs?: JobsStore };
-export const jobsStore = (runtime.goodhandJobs ??= new JobsStore());
-
-Object.setPrototypeOf(jobsStore, JobsStore.prototype);
-attachPersistence(jobsStore, "fsm", "jobs");
+export const jobsStore = attachPersistence(new JobsStore(), "fsm", "jobs") as JobsStore;

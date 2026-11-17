@@ -21,6 +21,7 @@ export interface StockMovement {
     | 'install_use'
     | 'replacement_use'
     | 'direct_sale'
+    | 'installation_cancelled_sale'
     | 'manual_adjustment';
   orderNumber?: string;
   jobNumber?: string;
@@ -128,6 +129,7 @@ export class StockLedger {
         break;
 
       case 'install_use':
+      case 'installation_cancelled_sale':
         // Hardware completed: physical stock leaves, reservation cleared
         onHandDelta = -quantity;
         reservedDelta = -quantity;
@@ -186,9 +188,4 @@ export class StockLedger {
   }
 }
 
-const runtime = globalThis as typeof globalThis & { goodhandStockLedger?: StockLedger };
-export const stockLedger = runtime.goodhandStockLedger ??= new StockLedger();
-
-Object.setPrototypeOf(stockLedger, StockLedger.prototype);
-attachPersistence(stockLedger, 'store', 'inventory');
-
+export const stockLedger = attachPersistence(new StockLedger(), "store", "inventory") as StockLedger;

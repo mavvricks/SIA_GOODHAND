@@ -8,7 +8,7 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node db/migrate.mjs",
+    "db:migrate": "node ../../scripts/postgres-database.mjs migrate store",
     "db:seed": "node db/seed.mjs"
   },
   "dependencies": {

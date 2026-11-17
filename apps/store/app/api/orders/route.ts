@@ -1,8 +1,9 @@
+import { databaseRoute } from "../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { ordersService } from "@/lib/services/orders-service";
 import { canViewOrder, customerOrder } from "@/lib/order-access";
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user)
     return NextResponse.json(
@@ -19,3 +20,5 @@ export async function GET(req: NextRequest) {
     { headers: { "Cache-Control": "no-store" } },
   );
 }
+
+export const GET = databaseRoute("store", handleGET, { readOnly: true });

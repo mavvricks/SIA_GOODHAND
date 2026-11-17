@@ -1,3 +1,5 @@
+import { postgresEnabled, withDatabase } from "../../../../packages/database/postgres.mjs";
+import { drainPostgresOutbox } from "../../../../packages/database/outbox.mjs";
 import { outboxEngine } from "./outbox-engine";
 import { createStoreToFsmServiceToken } from "../auth";
 import { simulationService } from "../simulation/simulation-service";
@@ -8,7 +10,7 @@ export async function dispatchToFsm(
   key: string,
   correlationId: string,
 ) {
-  if (simulationService.getFlag("partner_outage_simulated"))
+  if (await withDatabase("store", () => simulationService.getFlag("partner_outage_simulated"), { readOnly: true }))
     return { status: 503 };
   const base = (
     process.env.STORE_FSM_BASE_URL || "http://localhost:3100/api/v1"
@@ -60,6 +62,12 @@ const runtime = globalThis as typeof globalThis & {
   storeDrainTimer?: ReturnType<typeof setInterval>;
 };
 export function drainStoreOutbox() {
+  if (postgresEnabled("store")) return drainPostgresOutbox("store",
+    () => outboxEngine.getOutboxRows(),
+    (row: any) => dispatchToFsm(row.operationId, row.payload, row.idempotencyKey, row.correlationId),
+    (row: any, response: any) => outboxEngine.deliverMessage(row, async () => response),
+    () => outboxEngine.checkCircuit().allowed);
+
   if (!runtime.storeDrain)
     runtime.storeDrain = outboxEngine.drainQueue(dispatchToFsm).finally(() => {
       runtime.storeDrain = undefined;

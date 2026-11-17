@@ -1,7 +1,8 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { simulationService } from '@/lib/simulation/simulation-service';
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
     const { key, value } = await req.json();
     if (typeof key !== 'string' || typeof value !== 'boolean') {
@@ -14,3 +15,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
-import { getLocalDatabase } from "../../../packages/local-db/index.mjs";
+import { accountDatabase } from "../../../packages/database/accounts.mjs";
+import { postgresEnabled } from "../../../packages/database/postgres.mjs";
 
 export function storeAccounts() {
-  const database = getLocalDatabase("store");
+  const database: any = accountDatabase("store");
+  if (postgresEnabled("store")) return database;
   const seeds = [
     {
       email: "customer1@example.com",
@@ -49,7 +51,7 @@ export function storeAccounts() {
 export async function authenticateStoreUser(email: unknown, password: unknown) {
   if (typeof email !== "string" || typeof password !== "string" || !password)
     return null;
-  const row = storeAccounts().findUser(email.trim().toLowerCase());
+  const row = await storeAccounts().findUser(email.trim().toLowerCase());
   if (!row || !(await bcrypt.compare(password, row.password_hash))) return null;
   return {
     userId: row.id,

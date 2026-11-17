@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../packages/database/postgres.mjs";
 import { getSessionUser } from "@/lib/auth";
 import { persistService } from "../../../../../packages/local-db/index.mjs";
 import { after, NextResponse, type NextRequest } from "next/server";
@@ -7,7 +8,7 @@ import {
   startLocalOutboxWorker,
 } from "@/lib/outbox/dispatch";
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const correlationId =
     req.headers.get("x-correlation-id") || crypto.randomUUID();
   const idempotencyKey =
@@ -63,3 +64,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

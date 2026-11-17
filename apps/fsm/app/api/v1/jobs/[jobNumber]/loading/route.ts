@@ -1,9 +1,10 @@
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { createErrorResponse } from "@/lib/errors";
 import { jobsStore } from "@/lib/services/jobs-store";
 import { requireAssignedTechnician } from "@/lib/job-access";
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> },
 ) {
@@ -52,3 +53,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

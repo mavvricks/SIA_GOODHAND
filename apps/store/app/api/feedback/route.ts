@@ -1,9 +1,10 @@
+import { databaseRoute } from "../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { feedbackService } from '@/lib/services/feedback-service';
 import { getSessionUser } from '@/lib/auth';
 import { logger } from '@prototype/logger';
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
 
   let body: any;
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderNumber = searchParams.get('orderNumber');
 
@@ -96,3 +97,7 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });
+
+export const GET = databaseRoute("store", handleGET, { readOnly: true });

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "description": "GoodHand Store + Field Service Integration Prototype",
   "scripts": {
@@ -18,11 +18,18 @@
     "demo:reset": "node scripts/reset-demo.mjs",
     "test": "vitest run",
     "lint": "pnpm -r lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yaml}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yaml}\"",
+    "db:migrate": "node scripts/postgres-database.mjs migrate",
+    "db:import-local": "node scripts/postgres-database.mjs import-local",
+    "db:cloud-status": "node scripts/postgres-database.mjs status",
+    "e2e": "node scripts/e2e.mjs"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }

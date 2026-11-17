@@ -1,10 +1,11 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { ordersService } from "@/lib/services/orders-service";
 import { StatusChangeWebhookRequestSchema } from "@prototype/contract";
 import { logger } from "@prototype/logger";
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const correlationId =
     req.headers.get("x-correlation-id") || crypto.randomUUID();
   const timestampHeader = req.headers.get("x-timestamp");
@@ -112,3 +113,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

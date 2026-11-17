@@ -1,11 +1,13 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
+import { after, NextResponse, type NextRequest } from 'next/server';
+import { flushFsmOutbox } from '@/lib/outbox';
 import { verifyServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
 import { jobsStore } from '@/lib/services/jobs-store';
 import { RescheduleRequestSchema } from '@prototype/contract';
 import { logger } from '@prototype/logger';
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> }
 ) {
@@ -52,10 +54,12 @@ export async function POST(
       requestedStart,
       requestedEnd,
       reason,
-      correlationId
+      correlationId,
+      idempotencyKey
     );
 
     logger.info({ correlationId, jobNumber, status: job.status }, 'OP-03 reschedule request accepted');
+    after(flushFsmOutbox);
 
     return NextResponse.json(
       { success: true, message: 'Reschedule request accepted for dispatcher review' },
@@ -69,3 +73,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

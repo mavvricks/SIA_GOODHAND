@@ -306,7 +306,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
   const techMode = data?.user.role === "technician";
   const pending =
     data?.jobs.filter(
-      (job) => !job.technicianId && job.status === "Pending Scheduling",
+      (job) => !job.technicianId && ["Pending Scheduling", "Reschedule Required"].includes(job.status),
     ) || [];
   const myJobs =
     data?.jobs.filter((job) => job.technicianId === data.technician?.id) || [];
@@ -398,7 +398,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
           )}
           {!techMode &&
             !job.technicianId &&
-            job.status === "Pending Scheduling" && (
+            ["Pending Scheduling", "Reschedule Required"].includes(job.status) && (
               <AssignmentForm
                 job={job}
                 technicians={data!.technicians}

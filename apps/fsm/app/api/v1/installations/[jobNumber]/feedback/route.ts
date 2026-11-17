@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
@@ -5,7 +6,7 @@ import { jobsStore } from '@/lib/services/jobs-store';
 import { simulationService } from '@/lib/simulation/simulation-service';
 import { logger } from '@prototype/logger';
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> }
 ) {
@@ -76,7 +77,7 @@ export async function POST(
   }
 }
 
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> }
 ) {
@@ -146,3 +147,7 @@ export async function PATCH(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });
+
+export const PATCH = databaseRoute("fsm", handlePATCH, { readOnly: false });

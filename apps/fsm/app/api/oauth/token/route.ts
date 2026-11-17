@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
+import { allowAuthAttempt } from '../../../../../../packages/database/rate-limit.mjs';
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production' && (!process.env.STORE_SERVICE_CLIENT_SECRET || !process.env.FSM_SESSION_SECRET)) return createErrorResponse('SERVICE_UNAVAILABLE', 'Service authentication is not configured.');
   try {
     let clientId: string | undefined;
     let clientSecret: string | undefined;
@@ -24,6 +26,8 @@ export async function POST(req: NextRequest) {
       scope = formData.get('scope')?.toString();
     }
 
+    if (typeof clientId !== 'string' || clientId.length > 128 || typeof clientSecret !== 'string' || clientSecret.length > 1024 || (scope !== undefined && (typeof scope !== 'string' || scope.length > 1000))) return createErrorResponse('VALIDATION_FAILED', 'Invalid client credentials or scope.');
+    if (!(await allowAuthAttempt('fsm', 'oauth', req.headers.get('x-forwarded-for')?.split(',')[0] || '', clientId))) return createErrorResponse('RATE_LIMITED', 'Too many token requests. Try again in five minutes.');
     if (grantType !== 'client_credentials') {
       return createErrorResponse('VALIDATION_FAILED', 'Unsupported grant_type. Must be client_credentials.');
     }
@@ -48,6 +52,9 @@ export async function POST(req: NextRequest) {
       'webhooks:inventory',
       'catalog:read'
     ];
+
+    const allowedScopes = new Set(['installations:create', 'installations:read', 'installations:update', 'feedback:write', 'stock:read', 'webhooks:schedule', 'webhooks:status', 'webhooks:completion', 'webhooks:inventory', 'catalog:read']);
+    if (requestedScopes.some(requested => !allowedScopes.has(requested))) return createErrorResponse('FORBIDDEN_SCOPE', 'Unsupported service scope.');
 
     const token = await createServiceToken(clientId, requestedScopes);
 

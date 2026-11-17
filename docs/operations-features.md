@@ -16,7 +16,7 @@ Vitest covers the two-hour boundary, overlapping claims, ownership, unclaim/recl
 
 ## Assessment: next useful work, in priority order
 
-1. **Production persistence and deployment:** Replace local SQLite snapshot storage with transactional hosted PostgreSQL adapters for both apps before Vercel deployment. Use atomic writes, database schedule constraints that include the two-hour buffer, and durable scheduled outbox workers. The current local single-process guard is not a distributed database concurrency guarantee.
+1. **Deploy and scale PostgreSQL:** Separate Neon databases, atomic writes, a database schedule constraint, and durable outbox leases are implemented. Deploy the two Vercel apps and configure both cron secrets. The compatibility adapter loads all domain rows per request and serializes writes; replace it with granular SQL repositories before high traffic.
 2. **Payment and pricing integrity:** Integrate a real payment provider with signed payment confirmation, calculate prices from the server catalog rather than client amounts, and make order/stock/outbox writes one transaction. Add refund handling and receipts. Current checkout is still a simulated-payment demonstration.
 3. **Production security:** Audit every legacy/demo route, remove publicly reachable demo mutation endpoints, require production-only secrets, add rate limits and password recovery, and review all integration endpoints for strict authentication/replay handling. The newly added operational endpoints are role restricted and signed; this is not a complete security audit of all legacy endpoints.
 4. **Dispatch exception handling:** Add a dispatcher-managed reschedule calendar with available-slot suggestions, branch/service-area eligibility, time off and travel distance. Today branch is informative, not a verified geographic restriction; emergency release after work begins needs a supervised handover workflow.
@@ -25,4 +25,4 @@ Vitest covers the two-hour boundary, overlapping claims, ownership, unclaim/recl
 
 ## Local data
 
-Business updates continue to persist in the existing separate local SQLite databases. Real technician contact details must be supplied by authorized staff. Browser checks created clearly named verification orders; no existing customer orders were reset or removed.
+Business updates use the two separate Neon PostgreSQL databases when their URLs are configured. The original local SQLite databases and backups remain for recovery. Real technician contact details must be supplied by authorized staff. Verification orders were created without resetting existing customer orders.

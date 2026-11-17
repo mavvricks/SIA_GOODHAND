@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createErrorResponse } from "@/lib/errors";
@@ -5,7 +6,7 @@ import { jobsStore } from "@/lib/services/jobs-store";
 import { technicianForUser } from "@/lib/technicians";
 import { flushFsmOutbox } from "@/lib/outbox";
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> },
 ) {
@@ -46,3 +47,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

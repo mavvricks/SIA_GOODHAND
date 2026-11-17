@@ -1,9 +1,10 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse } from 'next/server';
 import { jobsStore } from '@/lib/services/jobs-store';
 import { simulationService } from '@/lib/simulation/simulation-service';
 import { mailService } from '@/lib/email/mail-service';
 
-export async function GET() {
+async function handleGET() {
   const flags = simulationService.getAllFlags();
   const jobs = jobsStore.listJobs();
   const outbox = jobsStore.getOutboxMessages();
@@ -20,3 +21,5 @@ export async function GET() {
     emails
   });
 }
+
+export const GET = databaseRoute("fsm", handleGET, { readOnly: true });

@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
@@ -12,7 +13,7 @@ const schema = z
     scheduledEnd: z.string().datetime({ offset: true }),
   })
   .strict();
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> },
 ) {
@@ -60,3 +61,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

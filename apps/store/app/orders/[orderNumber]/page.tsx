@@ -1,3 +1,4 @@
+import { withDatabase } from "../../../../../packages/database/postgres.mjs";
 import { canViewOrder } from "@/lib/order-access";
 import { OrderTracking } from "@/components/OrderTracking";
 import { OrderRefresh } from "@/components/OrderRefresh";
@@ -13,9 +14,10 @@ import { ShieldCheck, Wrench, ArrowRight, Package } from "lucide-react";
 import type { JobStatus } from "@prototype/contract";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { StoreHeader } from "@/components/StoreHeader";
+import { InstallationActions } from "@/components/InstallationActions";
 
 export const dynamic = "force-dynamic";
-export default async function OrderDetailPage({
+async function OrderDetailPage({
   params,
 }: {
   params: Promise<{ orderNumber: string }>;
@@ -105,6 +107,7 @@ export default async function OrderDetailPage({
                 </p>
               </div>
             </div>
+            <InstallationActions orderNumber={orderNumber} status={order.installationStatus} preferredStart={order.preferredStart} preferredEnd={order.preferredEnd} />
           </section>
         ) : (
           <section className="bg-blue-50 p-6 rounded-xl border border-blue-200 space-y-2">
@@ -184,3 +187,5 @@ export default async function OrderDetailPage({
     </div>
   );
 }
+
+export default async function Page(props: { params: Promise<{ orderNumber: string }> }) { return withDatabase("store", () => OrderDetailPage(props), { readOnly: true }); }

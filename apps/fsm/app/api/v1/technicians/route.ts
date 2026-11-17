@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
@@ -7,7 +8,7 @@ async function staff(req: NextRequest) {
   const user = await getSessionUser(req);
   return user && ["dispatcher", "admin"].includes(user.role);
 }
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   if (!(await staff(req)))
     return createErrorResponse("FORBIDDEN_SCOPE", "Staff access required.");
   return NextResponse.json(
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     { headers: { "Cache-Control": "no-store" } },
   );
 }
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   if (!(await staff(req)))
     return createErrorResponse("FORBIDDEN_SCOPE", "Staff access required.");
   try {
@@ -59,3 +60,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 }
+
+export const GET = databaseRoute("fsm", handleGET, { readOnly: true });
+
+export const PATCH = databaseRoute("fsm", handlePATCH, { readOnly: false });

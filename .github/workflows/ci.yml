@@ -44,6 +44,14 @@ jobs:
         run: |
           pnpm contract:generate
           git diff --exit-code packages/contract/generated
+          pnpm contract:lint
+          node scripts/contract-check.mjs
 
       - name: Run Tests
         run: pnpm test
+
+      - name: Build both applications
+        run: pnpm build
+
+      - name: Cross-system HTTP lifecycle
+        run: pnpm e2e

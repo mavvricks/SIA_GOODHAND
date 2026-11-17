@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { simulationService } from "@/lib/simulation/simulation-service";
 import { outboxEngine, persistOutboxState } from "@/lib/outbox/outbox-engine";
@@ -6,7 +7,7 @@ import {
   startLocalOutboxWorker,
 } from "@/lib/outbox/dispatch";
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   try {
     const { key, value } = await req.json();
     if (typeof key !== "string" || typeof value !== "boolean") {
@@ -36,3 +37,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

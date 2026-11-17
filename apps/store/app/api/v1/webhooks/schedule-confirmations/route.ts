@@ -1,10 +1,11 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'node:crypto';
 import { ordersService } from '@/lib/services/orders-service';
 import { ScheduleConfirmationWebhookRequestSchema } from '@prototype/contract';
 import { logger } from '@prototype/logger';
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
   const signatureHeader = req.headers.get('x-signature');
   const timestampHeader = req.headers.get('x-timestamp');
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     .digest('hex');
 
   // If in production or test where signature is provided, verify
-  if (signatureHeader && signatureHeader !== expectedSig) {
+  if (!signatureHeader || signatureHeader.length !== expectedSig.length || !crypto.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(expectedSig))) {
     logger.warn({ correlationId }, 'Invalid HMAC signature on OP-05 webhook');
     return NextResponse.json({ error: { category: 'AUTHENTICATION_REQUIRED', message: 'Invalid webhook HMAC signature' } }, { status: 401 });
   }
@@ -62,3 +63,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { category: 'UNEXPECTED_ERROR', message: err.message } }, { status: 500 });
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

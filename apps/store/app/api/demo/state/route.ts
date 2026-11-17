@@ -1,10 +1,11 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse } from 'next/server';
 import { outboxEngine } from '@/lib/outbox/outbox-engine';
 import { simulationService } from '@/lib/simulation/simulation-service';
 import { mailService } from '@/lib/email/mail-service';
 import { feedbackService } from '@/lib/services/feedback-service';
 
-export async function GET() {
+async function handleGET() {
   const flags = simulationService.getAllFlags();
   const outbox = outboxEngine.getOutboxRows();
   const failed = outboxEngine.getFailedRows();
@@ -21,3 +22,5 @@ export async function GET() {
     followups
   });
 }
+
+export const GET = databaseRoute("store", handleGET, { readOnly: true });

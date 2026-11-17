@@ -1,6 +1,9 @@
-import { DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
+import { postgresEnabled, registerService } from "../database/postgres.mjs";
+const require = createRequire(import.meta.url);
 import fs from "node:fs";
 import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 let root = process.cwd();
 while (
   !fs.existsSync(path.join(root, "pnpm-workspace.yaml")) &&
@@ -10,12 +13,17 @@ while (
 const runtime = (globalThis[Symbol.for("goodhand.localDatabase")] ??= {
   databases: new Map(),
   services: new WeakMap(),
+  transactionContext: new AsyncLocalStorage(),
 });
+runtime.transactionContext ||= new AsyncLocalStorage();
 
 export class LocalDatabase {
   constructor(filename) {
+    this.services = new Set();
+    this.transactionTail = Promise.resolve();
     if (filename !== ":memory:")
       fs.mkdirSync(path.dirname(filename), { recursive: true });
+    const { DatabaseSync } = require("node:sqlite");
     this.connection = new DatabaseSync(filename);
     this.connection
       .exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
@@ -24,7 +32,20 @@ export class LocalDatabase {
       CREATE TABLE IF NOT EXISTS service_state(name TEXT PRIMARY KEY, payload TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE, password_hash TEXT NOT NULL, role TEXT NOT NULL, full_name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS inbound_messages(id TEXT PRIMARY KEY, hash TEXT NOT NULL, response TEXT NOT NULL, received_at TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS sessions_user_id ON sessions(user_id);`);
+  }
+  inboundMessage(id) {
+    return this.connection
+      .prepare("SELECT hash,response FROM inbound_messages WHERE id=?")
+      .get(id);
+  }
+  saveInboundMessage(id, hash, response) {
+    this.connection
+      .prepare(
+        "INSERT OR IGNORE INTO inbound_messages(id,hash,response,received_at) VALUES(?,?,?,?)",
+      )
+      .run(id, hash, JSON.stringify(response), new Date().toISOString());
   }
   readState(name) {
     return this.connection
@@ -124,6 +145,7 @@ const stateOf = (service) =>
   );
 
 export function persistService(service) {
+  if (service.__postgresService) return;
   const record = runtime.services.get(service);
   if (!record) return;
   const payload = encode(stateOf(service));
@@ -133,13 +155,67 @@ export function persistService(service) {
   }
 }
 
+// One local app process owns one SQLite connection. Queue request units of work
+// and restore in-memory service state if a transaction is rejected.
+export async function withLocalTransaction(
+  system,
+  fn,
+  { readOnly = false } = {},
+) {
+  if (process.env.NODE_ENV === "test" && !process.env.GOODHAND_DATA_DIR)
+    return fn();
+  const existing = runtime.transactionContext.getStore();
+  if (existing?.active && existing.system === system) return fn();
+  const database = getLocalDatabase(system);
+  const previous = database.transactionTail;
+  let release;
+  database.transactionTail = new Promise((resolve) => {
+    release = resolve;
+  });
+  await previous;
+  const before = [...database.services].map((service) => ({
+    service,
+    state: decode(encode(stateOf(service))),
+    last: runtime.services.get(service).last,
+  }));
+  const context = { system, active: true };
+  try {
+    if (!readOnly) database.connection.exec("BEGIN IMMEDIATE");
+    const result = await runtime.transactionContext.run(context, fn);
+    if (!readOnly)
+      database.connection.exec(
+        result instanceof Response && result.status >= 400
+          ? "ROLLBACK"
+          : "COMMIT",
+      );
+    if (result instanceof Response && result.status >= 400)
+      for (const entry of before) {
+        Object.assign(entry.service, entry.state);
+        runtime.services.get(entry.service).last = entry.last;
+      }
+    return result;
+  } catch (error) {
+    if (!readOnly) database.connection.exec("ROLLBACK");
+    for (const entry of before) {
+      Object.assign(entry.service, entry.state);
+      runtime.services.get(entry.service).last = entry.last;
+    }
+    throw error;
+  } finally {
+    context.active = false;
+    release();
+  }
+}
+
 // Local single-process adapter: persist existing domain state without changing OP contracts.
 // The later hosted Postgres adapter must replace snapshots with normalized transactions.
 export function attachPersistence(service, system, name) {
+  if (postgresEnabled(system)) return registerService(service, system, name);
   if (process.env.NODE_ENV === "test" && !process.env.GOODHAND_DATA_DIR)
     return service;
   if (!runtime.services.has(service)) {
     const database = getLocalDatabase(system);
+    database.services.add(service);
     const saved = database.readState(name);
     if (saved) Object.assign(service, decode(saved));
     runtime.services.set(service, { database, name, last: saved, depth: 0 });

@@ -58,7 +58,7 @@ async function proxy(req: NextRequest, update: boolean) {
       },
       body,
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     return NextResponse.json(await res.json(), {
       status: res.status,

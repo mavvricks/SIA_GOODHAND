@@ -1,11 +1,13 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { databaseRoute } from "../../../../../../../../packages/database/postgres.mjs";
+import { after, NextResponse, type NextRequest } from 'next/server';
+import { flushFsmOutbox } from '@/lib/outbox';
 import { verifyServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
 import { jobsStore } from '@/lib/services/jobs-store';
 import { CancelInstallationRequestSchema } from '@prototype/contract';
 import { logger } from '@prototype/logger';
 
-export async function POST(
+async function handlePOST(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> }
 ) {
@@ -51,10 +53,12 @@ export async function POST(
       jobNumber,
       reason,
       cancelledBy,
-      correlationId
+      correlationId,
+      idempotencyKey
     );
 
     logger.info({ correlationId, jobNumber, status: job.status }, 'OP-04 cancellation accepted');
+    after(flushFsmOutbox);
 
     return NextResponse.json(
       { success: true, message: 'Installation job successfully cancelled' },
@@ -68,3 +72,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = databaseRoute("fsm", handlePOST, { readOnly: false });

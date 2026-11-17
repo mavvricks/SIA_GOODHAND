@@ -29,9 +29,4 @@ export class SimulationService {
   }
 }
 
-const runtime = globalThis as typeof globalThis & { goodhandStoreSimulation?: SimulationService };
-export const simulationService = runtime.goodhandStoreSimulation ??= new SimulationService();
-
-Object.setPrototypeOf(simulationService, SimulationService.prototype);
-attachPersistence(simulationService, 'store', 'simulation');
-
+export const simulationService = attachPersistence(new SimulationService(), "store", "simulation") as SimulationService;

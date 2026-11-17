@@ -274,11 +274,5 @@ export class OutboxEngine {
   }
 }
 
-const runtime = globalThis as typeof globalThis & { goodhandStoreOutbox?: OutboxEngine };
-export const outboxEngine = runtime.goodhandStoreOutbox ??= new OutboxEngine();
-Object.setPrototypeOf(outboxEngine, OutboxEngine.prototype);
-
-Object.setPrototypeOf(outboxEngine, OutboxEngine.prototype);
-attachPersistence(outboxEngine, 'store', 'outbox');
+export const outboxEngine = attachPersistence(new OutboxEngine(), "store", "outbox") as OutboxEngine;
 export function persistOutboxState() { persistService(outboxEngine); }
-

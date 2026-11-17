@@ -1,4 +1,4 @@
-import { getLocalDatabase } from "../../../packages/local-db/index.mjs";
+import { accountDatabase } from "../../../packages/database/accounts.mjs";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import type { NextRequest } from "next/server";
@@ -27,8 +27,9 @@ export async function comparePassword(
 }
 
 export async function createSessionToken(user: UserSession): Promise<string> {
+  if (process.env.NODE_ENV === 'production' && !process.env.FSM_SESSION_SECRET) throw new Error('FSM session signing is not configured');
   const sessionId = crypto.randomUUID();
-  getLocalDatabase("fsm").createSession(
+  await accountDatabase("fsm").createSession(
     sessionId,
     user.userId,
     Date.now() + 8 * 3600 * 1000,
@@ -44,10 +45,11 @@ export async function createSessionToken(user: UserSession): Promise<string> {
 export async function verifySessionToken(
   token: string,
 ): Promise<UserSession | null> {
+  if (process.env.NODE_ENV === 'production' && !process.env.FSM_SESSION_SECRET) return null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     if (!payload.jti || typeof payload.userId !== "string") return null;
-    const row = getLocalDatabase("fsm").sessionUser(
+    const row = await accountDatabase("fsm").sessionUser(
       payload.jti,
       payload.userId,
     );
@@ -113,7 +115,7 @@ export async function createServiceToken(
 export async function revokeSessionToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (payload.jti) getLocalDatabase("fsm").revokeSession(payload.jti);
+    if (payload.jti) await accountDatabase("fsm").revokeSession(payload.jti);
   } catch {
     /* Already expired or invalid. */
   }

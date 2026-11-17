@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node db/migrate.mjs",
+    "db:migrate": "node ../../scripts/postgres-database.mjs migrate fsm",
     "db:seed": "node db/seed.mjs"
   },
   "dependencies": {

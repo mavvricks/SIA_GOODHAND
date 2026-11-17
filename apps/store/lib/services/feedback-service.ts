@@ -305,10 +305,4 @@ export class FeedbackService {
   }
 }
 
-export const feedbackService = new FeedbackService();
-
-
-Object.setPrototypeOf(feedbackService, FeedbackService.prototype);
-attachPersistence(feedbackService, 'store', 'feedback');
-
-
+export const feedbackService = attachPersistence(new FeedbackService(), "store", "feedback") as FeedbackService;

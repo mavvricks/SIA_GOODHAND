@@ -105,6 +105,7 @@ export function StoreHeader() {
           </Link>
           <Link href="/#contact">Contact</Link>
           <Link href="/orders">My orders</Link>
+          {user?.role === 'store_admin' && <Link href="/operations">Operations</Link>}
           <a
             className="gh-locator"
             href="https://www.stores.goodhand88.com"

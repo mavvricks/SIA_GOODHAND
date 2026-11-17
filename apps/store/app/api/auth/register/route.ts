@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = schema.parse(await req.json());
     const database = storeAccounts();
-    database.addUser({
+    await database.addUser({
       id: crypto.randomUUID(),
       email: input.email.toLowerCase(),
       fullName: input.fullName,
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error: any) {
-    const duplicate = String(error.message).includes("UNIQUE constraint");
+    const duplicate = error.code === "23505" || String(error.message).includes("UNIQUE constraint");
     return NextResponse.json(
       {
         error: {

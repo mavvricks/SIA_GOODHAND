@@ -23,6 +23,31 @@ tags:
 
 paths:
   /installations:
+    get:
+      tags: [Installations]
+      summary: Find installation for a Store order
+      description: System A finds the installation job associated with an order it owns before an OP-03 or OP-04 request.
+      operationId: getInstallationByOrder
+      security:
+        - OAuth2ClientCredentials:
+            - "installations:read"
+      parameters:
+        - name: orderNumber
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^GH-[0-9]{8}-[0-9]{6}$"
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Matching installation job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstallationJobResponse"
+        "404":
+          $ref: "#/components/responses/StandardError"
     post:
       tags:
         - Installations

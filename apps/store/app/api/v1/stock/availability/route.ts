@@ -1,8 +1,11 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { stockLedger } from '@/lib/ledger/stock-ledger';
 import type { StockAvailabilityResponse } from '@prototype/contract';
+import { hasServiceScope } from '@/lib/service-auth';
 
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
+  if (!(await hasServiceScope(req.headers.get('authorization'), 'stock:read'))) return NextResponse.json({ error: { category: 'AUTHENTICATION_REQUIRED', message: 'Valid stock:read service token required.' } }, { status: 401 });
   const url = new URL(req.url);
   const skuQuery = url.searchParams.get('sku');
 
@@ -25,3 +28,5 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(response);
 }
+
+export const GET = databaseRoute("store", handleGET, { readOnly: true });

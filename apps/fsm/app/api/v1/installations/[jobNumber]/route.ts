@@ -1,9 +1,10 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyServiceToken } from '@/lib/auth';
 import { createErrorResponse } from '@/lib/errors';
 import { jobsStore } from '@/lib/services/jobs-store';
 
-export async function GET(
+async function handleGET(
   req: NextRequest,
   { params }: { params: Promise<{ jobNumber: string }> }
 ) {
@@ -38,3 +39,5 @@ export async function GET(
     createdAt: job.createdAt
   });
 }
+
+export const GET = databaseRoute("fsm", handleGET, { readOnly: true });

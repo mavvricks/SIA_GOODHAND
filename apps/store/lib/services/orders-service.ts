@@ -51,6 +51,8 @@ export interface StoredOrder {
   status: "pending_payment" | "paid" | "fulfilled" | "cancelled";
   totalPhp: string;
   includeInstallation: boolean;
+  rescheduleCount?: number;
+  customerRequestKeys?: string[];
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -332,8 +334,11 @@ export class OrdersService {
   ) {
     const order = this.orders.get(orderNumber);
     if (order) {
+      if (status === 'Cancelled' && order.includeInstallation && order.installationStatus !== 'Cancelled') {
+        for (const item of order.items) stockLedger.applyMovement(`installation-cancelled:${orderNumber}:${item.sku}`, item.sku, 'installation_cancelled_sale', item.quantity, orderNumber);
+      }
       order.installationStatus = status;
-      if (status === "Pending Scheduling" || status === "Reschedule Required") {
+      if (["Pending Scheduling", "Reschedule Required", "Cancelled"].includes(status)) {
         order.technicianName = undefined;
         order.scheduledStart = undefined;
         order.scheduledEnd = undefined;
@@ -455,11 +460,4 @@ export class OrdersService {
   }
 }
 
-const runtime = globalThis as typeof globalThis & {
-  goodhandOrders?: OrdersService;
-};
-export const ordersService = (runtime.goodhandOrders ??= new OrdersService());
-Object.setPrototypeOf(ordersService, OrdersService.prototype);
-
-Object.setPrototypeOf(ordersService, OrdersService.prototype);
-attachPersistence(ordersService, "store", "orders");
+export const ordersService = attachPersistence(new OrdersService(), "store", "orders") as OrdersService;

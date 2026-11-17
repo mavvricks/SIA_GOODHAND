@@ -1,3 +1,5 @@
+import { postgresEnabled, withDatabase } from "../../../packages/database/postgres.mjs";
+import { drainPostgresOutbox } from "../../../packages/database/outbox.mjs";
 import crypto from "node:crypto";
 import { jobsStore } from "./services/jobs-store";
 import { simulationService } from "./simulation/simulation-service";
@@ -8,12 +10,28 @@ const runtime = globalThis as typeof globalThis & {
   fsmFlushTimer?: ReturnType<typeof setInterval>;
 };
 export function flushFsmOutbox(): Promise<void> {
+  if (process.env.NODE_ENV === 'production' && !process.env.STORE_WEBHOOK_SIGNING_SECRET) return Promise.reject(new Error('Webhook signing is not configured'));
   if (process.env.NODE_ENV === "development" && !runtime.fsmFlushTimer) {
     runtime.fsmFlushTimer = setInterval(() => {
       void flushFsmOutbox().catch(() => {});
     }, 5000);
     runtime.fsmFlushTimer.unref?.();
   }
+  if (postgresEnabled("fsm")) return drainPostgresOutbox("fsm", () => jobsStore.getOutboxMessages(), async (message: any) => {
+    if (await withDatabase("fsm", () => simulationService.getFlag("partner_outage_simulated"), { readOnly: true })) return { status: 503 };
+    const paths: Record<string,string> = { "OP-05":"schedule-confirmations", "OP-06":"status-changes", "OP-07":"completions", "OP-08":"inventory-adjustments" };
+    const path=paths[message.operationId]; if(!path)return { status:422 };
+    const body=JSON.stringify(message.payload);const timestamp=new Date().toISOString();
+    const signature="sha256="+crypto.createHmac("sha256",process.env.STORE_WEBHOOK_SIGNING_SECRET || "change_me_webhook_signing_secret_at_least_32_characters").update(`${timestamp}.${body}`).digest("hex");
+    const base=(process.env.FSM_STORE_BASE_URL || "http://localhost:3000/api/v1").replace(/\/$/,"");
+    const response=await fetch(`${base}/webhooks/${path}`,{method:"POST",headers:{"Content-Type":"application/json","X-Signature":signature,"X-Timestamp":timestamp,"Idempotency-Key":message.idempotencyKey,"X-Correlation-Id":message.correlationId},body,signal:AbortSignal.timeout(3000)});
+    return {status:response.status};
+  }, (message: any, response: any) => {
+    message.attempts++;
+    if(response.status>=200&&response.status<300)message.status="delivered";
+    else if(message.attempts>=5 || [400,401,403,404,409,422].includes(response.status))message.status="failed";
+    else message.nextAttemptAt=new Date(Date.now()+5000*2**(message.attempts-1)).toISOString();
+  }).then(() => {});
   if (runtime.fsmFlush) return runtime.fsmFlush;
   runtime.fsmFlush = (async () => {
     const base = (

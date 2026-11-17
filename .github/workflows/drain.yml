@@ -13,20 +13,20 @@ jobs:
     steps:
       - name: Drain Store Outbox Queue
         run: |
-          if [ -n "${{ secrets.STORE_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET }}" ]; then
-            curl -s -X POST "${{ secrets.STORE_PUBLIC_URL }}/api/internal/drain" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              --max-time 10 || echo "Store drain request completed with status $?"
+          if [ -n "${{ secrets.STORE_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET_STORE }}" ]; then
+            curl --fail-with-body -sS -X POST "${{ secrets.STORE_PUBLIC_URL }}/api/internal/drain" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET_STORE }}" \
+              --max-time 60
           else
             echo "Secrets not configured yet, skipping store drain."
           fi
 
       - name: Drain FSM Outbox Queue
         run: |
-          if [ -n "${{ secrets.FSM_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET }}" ]; then
-            curl -s -X POST "${{ secrets.FSM_PUBLIC_URL }}/api/internal/drain" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              --max-time 10 || echo "FSM drain request completed with status $?"
+          if [ -n "${{ secrets.FSM_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET_FSM }}" ]; then
+            curl --fail-with-body -sS -X POST "${{ secrets.FSM_PUBLIC_URL }}/api/internal/drain" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET_FSM }}" \
+              --max-time 60
           else
             echo "Secrets not configured yet, skipping FSM drain."
           fi

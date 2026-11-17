@@ -1,10 +1,11 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from 'next/server';
 import crypto from 'node:crypto';
 import { ordersService } from '@/lib/services/orders-service';
 import { InventoryAdjustmentWebhookRequestSchema } from '@prototype/contract';
 import { logger } from '@prototype/logger';
 
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
   const timestampHeader = req.headers.get('x-timestamp');
   const signatureHeader = req.headers.get('x-signature');
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   const timestampMs = new Date(timestampHeader).getTime();
-  if (Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60 * 1000) {
     return NextResponse.json({ error: { category: 'AUTHENTICATION_REQUIRED', message: 'X-Timestamp skew exceeds 5 minutes' } }, { status: 401 });
   }
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     .update(`${timestampHeader}.${rawBody}`)
     .digest('hex');
 
-  if (signatureHeader && signatureHeader !== expectedSig) {
+  if (!signatureHeader || signatureHeader.length !== expectedSig.length || !crypto.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(expectedSig))) {
     return NextResponse.json({ error: { category: 'AUTHENTICATION_REQUIRED', message: 'Invalid webhook HMAC signature' } }, { status: 401 });
   }
 
@@ -62,3 +63,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

@@ -1,9 +1,11 @@
 import bcrypt from "bcryptjs";
-import { getLocalDatabase } from "../../../packages/local-db/index.mjs";
+import { accountDatabase } from "../../../packages/database/accounts.mjs";
+import { postgresEnabled } from "../../../packages/database/postgres.mjs";
 import { technicians } from "./technicians";
 
 export function fsmAccounts() {
-  const database = getLocalDatabase("fsm");
+  const database: any = accountDatabase("fsm");
+  if (postgresEnabled("fsm")) return database;
   const seeds = [
     {
       email: "dispatcher1@fsm.local",
@@ -44,7 +46,7 @@ export function fsmAccounts() {
 export async function authenticateFsmUser(email: unknown, password: unknown) {
   if (typeof email !== "string" || typeof password !== "string" || !password)
     return null;
-  const row = fsmAccounts().findUser(email.trim().toLowerCase());
+  const row = await fsmAccounts().findUser(email.trim().toLowerCase());
   if (!row || !(await bcrypt.compare(password, row.password_hash))) return null;
   return {
     userId: row.id,

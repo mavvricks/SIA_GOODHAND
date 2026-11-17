@@ -6,6 +6,16 @@ import { normalizePhilippinePhone } from "../lib/phone";
 import { jobsStore } from "../../fsm/lib/services/jobs-store";
 
 describe("Phase 3 Acceptance: System A Store, Stock Ledger & Outbox (TC-06, TC-09, TC-13, TC-30, TC-31)", () => {
+  it('converts a cancelled installation reservation into a single hardware sale', async () => {
+    const payload = { customerName: 'Cancellation Test', customerPhone: '09171234567', customerEmail: 'cancel@example.com', address: { line1: '100 Test Street', city: 'Makati', province: 'Metro Manila', postalCode: '1226' }, items: [{ sku: 'GH-CCTV-002', quantity: 1, unitPricePhp: '4950.00' }], include_installation: true, preferredStart: '2038-08-10T09:00:00+08:00', preferredEnd: '2038-08-10T11:00:00+08:00' };
+    stockLedger.seedInventory();
+    const { order } = await ordersService.processCheckout(payload, crypto.randomUUID(), crypto.randomUUID());
+    expect(stockLedger.getStock('GH-CCTV-002')).toMatchObject({ onHand: 50, reserved: 1 });
+    ordersService.updateStatusChange(order.orderNumber, 'Cancelled', new Date().toISOString());
+    ordersService.updateStatusChange(order.orderNumber, 'Cancelled', new Date().toISOString());
+    expect(stockLedger.getStock('GH-CCTV-002')).toMatchObject({ onHand: 49, reserved: 0 });
+    expect(order.status).toBe('paid');
+  });
   beforeEach(() => {
     stockLedger.seedInventory();
   });

@@ -1,5 +1,9 @@
 # Project Progress: GoodHand Store + Field Service Integration
 
+## Current status (17 November 2026)
+
+Both apps have been migrated from separate SQLite files to separate Neon PostgreSQL databases. The one-time import copied users and domain records, while the SQLite backups remain available. PostgreSQL transactions now commit orders, stock, outbox events, jobs, and appointments together; a database exclusion constraint enforces the two-hour technician gap. The current verification baseline is **72/72 unit tests**, **16/16 contract clauses**, Spectral lint, and an isolated two-app HTTP lifecycle covering reschedule, cancellation, outages, completion, and webhook replay. Customer installation actions, staff operations views, and authentication throttling are documented in `docs/api-register.md` and `docs/runbook.md`. Cloud app deployment and the human H7 rehearsal are still pending. Historical figures in the entries below record their earlier baselines.
+
 ## Phase Status
 
 | Phase | Description | Status |
@@ -10,8 +14,8 @@
 | Phase 3 | System A store & outbox | done |
 | Phase 4 | Completion, stock ledger, warranty | done |
 | Phase 5 | Feedback, demo panel, emails | done |
-| Phase 6 | Deploy, harden, freeze | done |
-| Phase 7 | Rehearsal & final demo check | done |
+| Phase 6 | Neon migration and deployment preparation | in progress |
+| Phase 7 | Rehearsal & final demo check | pending human |
 
 ## Session Details
 - **Customer tracking and dispatch controls:** Added checkout review/confirmation, account-owned `/orders` with live delivery timeline/ETA, staff delivery updates in System B, technician directory with editable real contact/branch fields, two-hour scheduling buffers for claims and force assignments, inline claim feedback, and reasoned emergency unclaim with appointment release and customer synchronization. Fixed checkout local-time defaults, empty-cart submission, and checkout retry duplication. Customer access is ownership checked; staff integration is signed and role restricted. See `docs/operations-features.md` for workflow details and production assessment. Verification: **64/64 tests across 13 files**, **16/16 contract checks**, both production builds, plus live Edge checkout/tracking/claim/unclaim/conflict and mobile checks. H7 remains unsigned.

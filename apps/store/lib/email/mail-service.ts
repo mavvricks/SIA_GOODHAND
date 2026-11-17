@@ -51,10 +51,4 @@ export class MailService {
   }
 }
 
-export const mailService = new MailService();
-
-
-Object.setPrototypeOf(mailService, MailService.prototype);
-attachPersistence(mailService, 'store', 'mail');
-
-
+export const mailService = attachPersistence(new MailService(), "store", "mail") as MailService;

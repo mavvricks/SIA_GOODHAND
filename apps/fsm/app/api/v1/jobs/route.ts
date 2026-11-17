@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createErrorResponse } from "@/lib/errors";
@@ -5,7 +6,7 @@ import { jobsStore } from "@/lib/services/jobs-store";
 import { technicians, technicianForUser, isQualified } from "@/lib/technicians";
 
 export const dynamic = "force-dynamic";
-export async function GET(req: NextRequest) {
+async function handleGET(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user)
     return createErrorResponse(
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
       (job) =>
         user.role !== "technician" ||
         job.technicianId === technician?.id ||
-        (!job.technicianId && job.status === "Pending Scheduling"),
+        (!job.technicianId && ["Pending Scheduling", "Reschedule Required"].includes(job.status)),
     )
     .map(({ customerEmail, customerPhone, idempotencyKey, ...job }) => ({
       ...job,
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       canClaim: Boolean(
         technician &&
         !job.technicianId &&
-        job.status === "Pending Scheduling" &&
+        ["Pending Scheduling", "Reschedule Required"].includes(job.status) &&
         isQualified(technician, job.items) &&
         !jobsStore.checkAppointmentOverlap(
           technician.id,
@@ -62,3 +63,5 @@ export async function GET(req: NextRequest) {
     { headers: { "Cache-Control": "no-store" } },
   );
 }
+
+export const GET = databaseRoute("fsm", handleGET, { readOnly: true });

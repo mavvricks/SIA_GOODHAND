@@ -1,3 +1,4 @@
+import { databaseRoute } from "../../../../../../../packages/database/postgres.mjs";
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod";
@@ -16,7 +17,8 @@ const schema = z.discriminatedUnion("action", [
     })
     .strict(),
 ]);
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production' && !process.env.STORE_WEBHOOK_SIGNING_SECRET) return NextResponse.json({ error: { message: 'Delivery signing is not configured.' } }, { status: 503 });
   const raw = await req.text();
   const timestamp = req.headers.get("x-timestamp") || "";
   const signature = req.headers.get("x-signature") || "";
@@ -63,3 +65,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = databaseRoute("store", handlePOST, { readOnly: false });

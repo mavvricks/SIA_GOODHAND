@@ -74,6 +74,7 @@ export function FsmHeader({ title }: { title?: string }) {
             <>
               <Link href="/technicians">Technicians</Link>
               <Link href="/deliveries">Order deliveries</Link>
+              <Link href="/operations">Operations</Link>
             </>
           )}
           <Link href="/demo">Demo Panel</Link>

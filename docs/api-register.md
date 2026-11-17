@@ -10,8 +10,8 @@ This register documents all 12 interface operations governed by OpenAPI 3.1 spec
 |---|---|---|---|---|:---:|:---:|
 | **OP-01** | A $\to$ B | `POST /api/v1/installations` | `installations:create` | outbox | 201, 200 (replay) | MUST |
 | **OP-02** | A $\to$ B | `GET /api/v1/installations/{jobNumber}` | `installations:read` | on-demand | 200 | SHOULD |
-| **OP-03** | A $\to$ B | `POST /api/v1/installations/{jobNumber}/reschedule-requests` | `installations:update` | outbox | 202 | SHOULD |
-| **OP-04** | A $\to$ B | `POST /api/v1/installations/{jobNumber}/cancellations` | `installations:update` | outbox | 200 | SHOULD |
+| **OP-03** | A $\to$ B | `POST /api/v1/installations/{jobNumber}/reschedule-requests` | `installations:update` | authenticated request, status webhook queued | 202 | SHOULD |
+| **OP-04** | A $\to$ B | `POST /api/v1/installations/{jobNumber}/cancellations` | `installations:update` | authenticated request, status webhook queued | 200 | SHOULD |
 | **OP-05** | B $\to$ A | `POST /api/v1/webhooks/schedule-confirmations` | `webhooks:schedule` | outbox | 200 | MUST |
 | **OP-06** | B $\to$ A | `POST /api/v1/webhooks/status-changes` | `webhooks:status` | outbox | 200 | MUST |
 | **OP-07** | B $\to$ A | `POST /api/v1/webhooks/completions` | `webhooks:completion` | outbox | 200 | MUST |
@@ -24,6 +24,14 @@ This register documents all 12 interface operations governed by OpenAPI 3.1 spec
 ---
 
 ## 2. Mandatory Common Headers
+
+System A also calls `GET /api/v1/installations?orderNumber=GH-...` with `installations:read` to find the job for an order it owns. Its customer-authenticated `POST /api/orders/{orderNumber}/installation` checks ownership, installation state, the two-reschedule limit, and cancellation cutoff before forwarding OP-03 or OP-04 with OAuth and an idempotency key. System B returns the same result for a repeated key and queues OP-06 so customer tracking updates. A hardware-only order has no installation action.
+
+Store and FSM staff operations APIs are `GET/POST /api/operations`; the Store requires a Store admin, while FSM requires a dispatcher/admin. They expose safe queue metadata and replay failed events with their original idempotency keys. `POST /api/internal/drain` on both apps requires its own cron bearer secret. These app-local routes are not part of the versioned inter-service OpenAPI contract.
+
+Cancelling installation leaves the equipment order paid and delivery active. Store converts its stock reservation into one hardware sale movement per SKU, keyed by order, so a repeated status callback cannot deduct stock twice.
+
+All Store `/api/v1/webhooks/*` routes require HMAC-SHA256 over timestamp and raw body, a timestamp within five minutes, and an `Idempotency-Key`. Successful responses are recorded in PostgreSQL or local SQLite so a duplicate payload gets the recorded response, while a different payload with the same key receives 409. Stock availability now checks a scoped service token. Login and token endpoints enforce a five-minute request limit; token scopes are allowlisted.
 
 ### All Inter-System Calls
 - `Authorization: Bearer <jwt>` — Signed HS256 JWT with matching scope.
