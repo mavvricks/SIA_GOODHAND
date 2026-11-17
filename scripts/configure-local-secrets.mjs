@@ -4,6 +4,7 @@ import { parseEnv } from "node:util";
 const files = ["apps/store/.env.local", "apps/fsm/.env.local"];
 const values = files.map((file) => parseEnv(fs.readFileSync(file, "utf8")));
 const random = () => crypto.randomBytes(48).toString("hex");
+const fsmSessionSecret = values[1].FSM_SESSION_SECRET || random();
 const shared = {
   STORE_SERVICE_CLIENT_ID: "store-service",
   STORE_SERVICE_CLIENT_SECRET:
@@ -19,7 +20,9 @@ for (const [index, file] of files.entries()) {
   const system = index === 0 ? "STORE" : "FSM";
   const additions = {
     ...shared,
-    [system + "_SESSION_SECRET"]: random(),
+    [system + "_SESSION_SECRET"]:
+      system === "FSM" ? fsmSessionSecret : random(),
+    ...(system === "STORE" ? { FSM_SESSION_SECRET: fsmSessionSecret } : {}),
     ["CRON_SECRET_" + system]: random(),
     DEMO_MODE: "false",
   };

@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Lock,
   Mail,
-  User,
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
@@ -58,22 +57,6 @@ function LoginFormContent() {
       router.push(redirectUrl);
     } else {
       setError(result.error || "Invalid email or password");
-    }
-  };
-
-  const handleQuickLogin = async (quickEmail: string, quickPass: string) => {
-    setEmail(quickEmail);
-    setPassword(quickPass);
-    setError(null);
-    setLoading(true);
-
-    const result = await login(quickEmail, quickPass);
-    setLoading(false);
-
-    if (result.success) {
-      router.push(redirectUrl);
-    } else {
-      setError(result.error || "Quick login failed");
     }
   };
 
@@ -203,49 +186,6 @@ function LoginFormContent() {
               ? "Already have an account? Sign in"
               : "New customer? Create an account"}
           </button>
-
-          {/* Quick Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <span className="block text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-              Fast Demo Logins (1-Click)
-            </span>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() =>
-                  handleQuickLogin(
-                    "customer1@example.com",
-                    "CustomerPassword123!",
-                  )
-                }
-                className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-blue-50 text-[#0e2378] hover:bg-blue-100 border border-blue-200 transition-colors flex items-center justify-between"
-              >
-                <span className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5" />
-                  <strong>Customer:</strong> Juan Dela Cruz
-                </span>
-                <span className="text-[10px] text-blue-600 bg-white px-1.5 py-0.5 rounded border border-blue-200">
-                  customer1@example.com
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleQuickLogin("admin@goodhand88.com", "AdminPassword123!")
-                }
-                className="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 transition-colors flex items-center justify-between"
-              >
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-                  <strong>Store Admin:</strong> GoodHand Manager
-                </span>
-                <span className="text-[10px] text-amber-700 bg-white px-1.5 py-0.5 rounded border border-amber-200">
-                  admin@goodhand88.com
-                </span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

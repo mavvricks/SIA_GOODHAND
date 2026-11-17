@@ -8,6 +8,8 @@ import {
 } from "@/lib/outbox/dispatch";
 
 async function handlePOST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production")
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
     const { key, value } = await req.json();
     if (typeof key !== "string" || typeof value !== "boolean") {

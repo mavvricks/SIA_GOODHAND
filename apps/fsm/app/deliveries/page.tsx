@@ -24,7 +24,7 @@ function DeliveryCard({
       .slice(0, 16);
   };
   return (
-    <article className="rounded-xl border bg-white p-5 space-y-3">
+    <article className="fsm-card p-5 space-y-3">
       <h2 className="font-bold">
         {order.orderNumber} · {order.customerName}
       </h2>
@@ -75,7 +75,7 @@ function DeliveryCard({
           <select
             name="status"
             defaultValue={order.delivery?.status || "Order received"}
-            className="block w-full border rounded p-2"
+            className="fsm-input block w-full p-2"
           >
             {statuses.map((s, i) => (
               <option key={s} disabled={i < current || i > current + 1}>
@@ -94,7 +94,7 @@ function DeliveryCard({
                 ? local(order.delivery.estimatedArrival)
                 : ""
             }
-            className="block w-full border rounded p-2"
+            className="fsm-input block w-full p-2"
           />
         </label>
         <label className="block text-sm">
@@ -103,7 +103,7 @@ function DeliveryCard({
             name="note"
             maxLength={500}
             placeholder="e.g. Your parcel has left our branch."
-            className="block w-full border rounded p-2"
+            className="fsm-input block w-full p-2"
           />
         </label>
         <button
@@ -112,7 +112,7 @@ function DeliveryCard({
             order.status === "pending_payment" ||
             order.status === "cancelled"
           }
-          className="rounded bg-indigo-700 text-white px-4 py-2 disabled:opacity-40"
+          className="fsm-action px-4 py-2 text-sm"
         >
           {busy ? "Saving…" : "Update customer tracking"}
         </button>
@@ -151,13 +151,20 @@ export default function DeliveriesPage() {
     void load();
   }, []);
   return (
-    <main className="max-w-7xl mx-auto p-6 space-y-5">
-      <h1 className="text-2xl font-bold">Order deliveries</h1>
-      <p>
-        Update packing, dispatch, delivery and estimated arrival for all Store
-        orders. Delivery status is separate from installation progress.
-      </p>
-      <button onClick={() => void load()} className="text-indigo-700 underline">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-7 space-y-5">
+      <div className="rounded-2xl bg-[#0b1c2d] px-6 py-6 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#ffc400]">
+          Customer updates
+        </p>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+          Order deliveries
+        </h1>
+        <p className="mt-2 text-sm text-slate-300">
+          Update packing, dispatch, delivery and estimated arrival for Store
+          orders. Delivery status is separate from installation progress.
+        </p>
+      </div>
+      <button onClick={() => void load()} className="fsm-link text-sm">
         Refresh orders
       </button>
       {error && (
@@ -170,7 +177,7 @@ export default function DeliveriesPage() {
         placeholder="Search order number or customer"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full border rounded p-3"
+        className="fsm-input w-full p-3"
       />
       <div className="grid md:grid-cols-2 gap-4">
         {orders

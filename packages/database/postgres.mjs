@@ -7,6 +7,12 @@ const runtime = (globalThis[Symbol.for("goodhand.postgres")] ??= {
   services: new Map(),
 });
 export function postgresEnabled(system) {
+  if (process.env.VERCEL && process.env.NODE_ENV === "production") {
+    if (process.env.GOODHAND_E2E_SQLITE === "1")
+      throw new Error("SQLite is not supported in a Vercel deployment");
+    if (!process.env[`${system.toUpperCase()}_DATABASE_URL`])
+      throw new Error(`Missing ${system.toUpperCase()}_DATABASE_URL on Vercel`);
+  }
   if (process.env.GOODHAND_E2E_SQLITE === "1") return false;
   return (
     (process.env.NODE_ENV !== "test" &&

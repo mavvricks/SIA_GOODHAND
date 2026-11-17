@@ -3,7 +3,7 @@ name: Outbox Drain Scheduler
 on:
   schedule:
     # Runs every 5 minutes
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -12,21 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Drain Store Outbox Queue
+        env:
+          STORE_PUBLIC_URL: ${{ secrets.STORE_PUBLIC_URL }}
+          CRON_SECRET_STORE: ${{ secrets.CRON_SECRET_STORE }}
         run: |
-          if [ -n "${{ secrets.STORE_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET_STORE }}" ]; then
-            curl --fail-with-body -sS -X POST "${{ secrets.STORE_PUBLIC_URL }}/api/internal/drain" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET_STORE }}" \
-              --max-time 60
-          else
-            echo "Secrets not configured yet, skipping store drain."
-          fi
+          test -n "$STORE_PUBLIC_URL" || { echo "STORE_PUBLIC_URL is missing"; exit 1; }
+          test -n "$CRON_SECRET_STORE" || { echo "CRON_SECRET_STORE is missing"; exit 1; }
+          curl --fail-with-body -sS -X POST "${STORE_PUBLIC_URL%/}/api/internal/drain" \
+            -H "Authorization: Bearer $CRON_SECRET_STORE" --max-time 60
 
       - name: Drain FSM Outbox Queue
+        env:
+          FSM_PUBLIC_URL: ${{ secrets.FSM_PUBLIC_URL }}
+          CRON_SECRET_FSM: ${{ secrets.CRON_SECRET_FSM }}
         run: |
-          if [ -n "${{ secrets.FSM_PUBLIC_URL }}" ] && [ -n "${{ secrets.CRON_SECRET_FSM }}" ]; then
-            curl --fail-with-body -sS -X POST "${{ secrets.FSM_PUBLIC_URL }}/api/internal/drain" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET_FSM }}" \
-              --max-time 60
-          else
-            echo "Secrets not configured yet, skipping FSM drain."
-          fi
+          test -n "$FSM_PUBLIC_URL" || { echo "FSM_PUBLIC_URL is missing"; exit 1; }
+          test -n "$CRON_SECRET_FSM" || { echo "CRON_SECRET_FSM is missing"; exit 1; }
+          curl --fail-with-body -sS -X POST "${FSM_PUBLIC_URL%/}/api/internal/drain" \
+            -H "Authorization: Bearer $CRON_SECRET_FSM" --max-time 60

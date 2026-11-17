@@ -22,17 +22,24 @@ export default function TechniciansPage() {
     return () => clearInterval(timer);
   }, []);
   return (
-    <main className="max-w-7xl mx-auto p-6 space-y-5">
-      <h1 className="text-2xl font-bold">Technician directory</h1>
-      <p>
-        Find qualified technicians by name, branch or skill. Schedules require
-        two hours between jobs.
-      </p>
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-7 space-y-5">
+      <div className="rounded-2xl bg-[#0b1c2d] px-6 py-6 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#ffc400]">
+          Dispatch resources
+        </p>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+          Technician directory
+        </h1>
+        <p className="mt-2 text-sm text-slate-300">
+          Find qualified technicians by name, branch or skill. Schedules require
+          two hours between jobs.
+        </p>
+      </div>
       {error && <p role="alert">{error}</p>}
       <input
         aria-label="Search technicians"
         placeholder="Search name, branch or qualification"
-        className="border p-3 rounded w-full"
+        className="fsm-input p-3 w-full"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
       />
@@ -45,15 +52,12 @@ export default function TechniciansPage() {
               .includes(filter.toLowerCase()),
           )
           .map((t) => (
-            <article
-              key={t.id}
-              className="bg-white rounded-xl border p-5 space-y-3"
-            >
+            <article key={t.id} className="fsm-card p-5 space-y-3">
               <h2 className="text-lg font-bold">{t.name}</h2>
               <p>
                 {t.code} · {t.qualifications.join(", ")}
               </p>
-              <a href={"mailto:" + t.email} className="text-indigo-700">
+              <a href={"mailto:" + t.email} className="fsm-link text-sm">
                 {t.email}
               </a>
               <p>
@@ -93,7 +97,7 @@ export default function TechniciansPage() {
                     name="branch"
                     maxLength={120}
                     defaultValue={t.branch}
-                    className="block border p-2 rounded"
+                    className="fsm-input block p-2"
                   />
                 </label>
                 <label className="text-sm">
@@ -103,10 +107,10 @@ export default function TechniciansPage() {
                     type="tel"
                     maxLength={30}
                     defaultValue={t.phone}
-                    className="block border p-2 rounded"
+                    className="fsm-input block p-2"
                   />
                 </label>
-                <button className="bg-indigo-700 text-white px-3 rounded">
+                <button className="fsm-action px-4 py-2 text-sm">
                   Save details
                 </button>
               </form>

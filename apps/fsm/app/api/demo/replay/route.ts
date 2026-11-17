@@ -5,6 +5,8 @@ import { jobsStore } from "@/lib/services/jobs-store";
 import { flushFsmOutbox } from "@/lib/outbox";
 
 async function handlePOST(req: NextRequest) {
+  if (process.env.NODE_ENV === "production")
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const user = await getSessionUser(req);
   if (!user || !["admin", "dispatcher"].includes(user.role))
     return NextResponse.json(

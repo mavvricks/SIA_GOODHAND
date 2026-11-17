@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { CalendarCheck2, Clock3, RefreshCw, Users, Wrench } from "lucide-react";
 import { StatusChip } from "@prototype/ui";
 import type { StoredJob } from "@/lib/services/jobs-store";
 import type { UserSession } from "@/lib/auth";
@@ -67,7 +68,7 @@ function AssignmentForm({
       <label className="text-xs font-semibold">
         Technician
         <select
-          className="block w-full mt-1 p-2 border rounded bg-white"
+          className="fsm-input block w-full mt-1 p-2"
           required
           value={technicianId}
           onChange={(event) => setTechnicianId(event.target.value)}
@@ -84,7 +85,7 @@ function AssignmentForm({
       <label className="text-xs font-semibold">
         Schedule start
         <input
-          className="block w-full mt-1 p-2 border rounded"
+          className="fsm-input block w-full mt-1 p-2"
           required
           type="datetime-local"
           value={start}
@@ -94,7 +95,7 @@ function AssignmentForm({
       <label className="text-xs font-semibold">
         Schedule end
         <input
-          className="block w-full mt-1 p-2 border rounded"
+          className="fsm-input block w-full mt-1 p-2"
           required
           type="datetime-local"
           value={end}
@@ -104,7 +105,7 @@ function AssignmentForm({
       <div className="sm:col-span-3 flex flex-wrap items-center gap-3">
         <button
           disabled={busy || !eligible.length}
-          className="px-4 py-2 bg-indigo-600 text-white font-semibold text-sm rounded disabled:opacity-50"
+          className="fsm-action px-4 py-2 text-sm"
         >
           Force assign
         </button>
@@ -176,7 +177,7 @@ function CompletionForm({
                   [item.sku]: Number(event.target.value),
                 })
               }
-              className="block border rounded p-2 w-full mt-1"
+              className="fsm-input block p-2 w-full mt-1"
             />
           </label>
           <label className="block text-xs">
@@ -188,7 +189,7 @@ function CompletionForm({
                 setSerials({ ...serials, [item.sku]: event.target.value })
               }
               required={item.quantity - (returned[item.sku] || 0) > 0}
-              className="block border rounded p-2 w-full mt-1"
+              className="fsm-input block p-2 w-full mt-1"
             />
           </label>
         </fieldset>
@@ -199,13 +200,10 @@ function CompletionForm({
           maxLength={2000}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
-          className="block w-full border rounded mt-1 p-2"
+          className="fsm-input block w-full mt-1 p-2"
         />
       </label>
-      <button
-        disabled={busy}
-        className="bg-emerald-700 text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50"
-      >
+      <button disabled={busy} className="fsm-action px-4 py-2 text-sm">
         Submit completion report
       </button>
     </form>
@@ -306,20 +304,44 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
   const techMode = data?.user.role === "technician";
   const pending =
     data?.jobs.filter(
-      (job) => !job.technicianId && ["Pending Scheduling", "Reschedule Required"].includes(job.status),
+      (job) =>
+        !job.technicianId &&
+        ["Pending Scheduling", "Reschedule Required"].includes(job.status),
     ) || [];
   const myJobs =
     data?.jobs.filter((job) => job.technicianId === data.technician?.id) || [];
-  const visible = techMode ? myJobs : data?.jobs || [];
+  const historyJobs = myJobs.filter((job) =>
+    ["Completed", "Cancelled"].includes(job.status),
+  );
+  const priority = (status: string) =>
+    status === "Pending Scheduling" || status === "Reschedule Required"
+      ? 0
+      : status === "In Progress"
+        ? 1
+        : status === "Scheduled"
+          ? 2
+          : 3;
+  const visible = (
+    techMode
+      ? myJobs.filter((job) => !["Completed", "Cancelled"].includes(job.status))
+      : data?.jobs || []
+  )
+    .slice()
+    .sort(
+      (a, b) =>
+        priority(a.status) - priority(b.status) ||
+        Date.parse(a.scheduledStart || a.preferredStart) -
+          Date.parse(b.scheduledStart || b.preferredStart),
+    );
   const card = (job: Job, available = false) => (
     <article
       key={job.jobNumber}
       data-job-number={job.jobNumber}
-      className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 min-w-0"
+      className="fsm-job-card min-w-0 p-4 sm:p-5"
     >
       <div className="flex flex-wrap justify-between items-start gap-3">
         <div className="min-w-0">
-          <h3 className="font-mono text-sm font-bold text-indigo-700 break-all">
+          <h3 className="font-mono text-sm font-bold text-[#0e2378] break-all">
             {job.jobNumber}
           </h3>
           <p className="text-xs text-slate-500 mt-1 break-all">
@@ -344,7 +366,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
       {jobFeedback[job.jobNumber] && (
         <p
           role="status"
-          className="mt-3 rounded border border-indigo-200 bg-indigo-50 p-3 text-sm"
+          className="mt-3 rounded border border-blue-200 bg-blue-50 p-3 text-sm"
         >
           {jobFeedback[job.jobNumber]}
         </p>
@@ -358,7 +380,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
         <div className="mt-4">
           <button
             disabled={Boolean(busy) || !job.canClaim}
-            className="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
+            className="fsm-action px-4 py-2 text-sm"
             onClick={() => void act(job, "claim")}
           >
             {busy === job.jobNumber ? "Claiming…" : "Claim job"}
@@ -372,7 +394,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
         </div>
       ) : (
         <button
-          className="text-sm text-indigo-700 font-semibold mt-3"
+          className="fsm-link mt-3 text-sm"
           aria-expanded={expanded === job.jobNumber}
           onClick={() =>
             setExpanded(expanded === job.jobNumber ? null : job.jobNumber)
@@ -398,7 +420,9 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
           )}
           {!techMode &&
             !job.technicianId &&
-            ["Pending Scheduling", "Reschedule Required"].includes(job.status) && (
+            ["Pending Scheduling", "Reschedule Required"].includes(
+              job.status,
+            ) && (
               <AssignmentForm
                 job={job}
                 technicians={data!.technicians}
@@ -429,7 +453,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
                   maxLength={500}
                   placeholder="Reason for unclaiming"
                   aria-label="Reason for unclaiming"
-                  className="border rounded p-2 text-sm"
+                  className="fsm-input p-2 text-sm"
                 />
                 <button
                   disabled={Boolean(busy)}
@@ -463,7 +487,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
                 </label>
               ))}
               <button
-                className="px-4 py-2 bg-indigo-700 text-white text-sm rounded disabled:opacity-40"
+                className="fsm-action px-4 py-2 text-sm"
                 disabled={
                   Boolean(busy) ||
                   job.items.some(
@@ -484,11 +508,33 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
     </article>
   );
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+    <div className="min-h-screen bg-[#f5f7fa]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#0b1c2d] px-5 py-5 text-white shadow-sm sm:px-7">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#ffc400]">
+              GoodHand field service
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+              {mode === "technician" ? "Your field work" : "Dispatch overview"}
+            </h1>
+            <p className="mt-1 text-sm text-slate-300">
+              {mode === "technician"
+                ? "Your assignments, available jobs, and next steps."
+                : "Track active installations and keep the queue moving."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
+          >
+            <RefreshCw size={15} /> Refresh jobs
+          </button>
+        </div>
         {loading && <p role="status">Loading live jobs…</p>}
         {unauthorized && (
-          <div className="bg-white p-6 rounded-xl border">
+          <div className="fsm-card p-6">
             <h2 className="text-lg font-semibold">Sign in to view live jobs</h2>
             <p className="text-sm text-slate-600 mt-2">
               Technicians can claim pending jobs. Dispatchers and administrators
@@ -496,7 +542,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
             </p>
             <Link
               href="/login"
-              className="inline-block bg-indigo-600 text-white px-4 py-2 rounded mt-4"
+              className="fsm-action mt-4 inline-block px-4 py-2 text-sm"
             >
               Sign in to System B
             </Link>
@@ -521,47 +567,76 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
         {data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                ["Pending Scheduling", pending.length],
+              {(
                 [
-                  "Scheduled",
-                  data.jobs.filter((job) => job.status === "Scheduled").length,
-                ],
-                [
-                  "In Progress",
-                  data.jobs.filter((job) => job.status === "In Progress")
-                    .length,
-                ],
-                [
-                  techMode ? "My Jobs" : "Active Technicians",
-                  techMode ? myJobs.length : data.technicians.length,
-                ],
-              ].map(([label, count]) => (
-                <div key={label} className="bg-white p-4 rounded-xl border">
-                  <p className="text-xs text-slate-500">{label}</p>
-                  <p className="text-2xl font-bold mt-1">{count}</p>
+                  [
+                    "Pending scheduling",
+                    pending.length,
+                    Clock3,
+                    "text-amber-700",
+                    "bg-amber-50",
+                  ],
+                  [
+                    "Scheduled",
+                    data.jobs.filter((job) => job.status === "Scheduled")
+                      .length,
+                    CalendarCheck2,
+                    "text-blue-700",
+                    "bg-blue-50",
+                  ],
+                  [
+                    "In Progress",
+                    data.jobs.filter((job) => job.status === "In Progress")
+                      .length,
+                    Wrench,
+                    "text-violet-700",
+                    "bg-violet-50",
+                  ],
+                  [
+                    techMode ? "My Jobs" : "Active Technicians",
+                    techMode ? myJobs.length : data.technicians.length,
+                    Users,
+                    "text-emerald-700",
+                    "bg-emerald-50",
+                  ],
+                ] as const
+              ).map(([label, count, Icon, color, background]) => (
+                <div
+                  key={label}
+                  className="fsm-card flex items-center justify-between gap-2 p-4 sm:p-5"
+                >
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-[#0b1c2d]">
+                      {count}
+                    </p>
+                  </div>
+                  <span
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${background} ${color}`}
+                  >
+                    <Icon size={19} />
+                  </span>
                 </div>
               ))}
             </div>
             <div className="flex flex-wrap justify-between items-center gap-3">
-              <h2 className="text-lg font-semibold">
-                {techMode ? "My assigned jobs" : "Live field jobs"}
+              <h2 className="text-xl font-bold text-[#0b1c2d]">
+                {techMode ? "My active jobs" : "Live field jobs"}
               </h2>
-              <button
-                className="text-sm font-semibold text-indigo-700"
-                onClick={() => void refresh()}
-              >
-                Refresh jobs
-              </button>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                {visible.length} jobs
+              </span>
             </div>
             <p className="text-xs text-slate-500">
               Updates automatically every 3 seconds. Schedules require a
               two-hour gap between jobs.
             </p>
             {!visible.length && (
-              <p className="p-5 bg-white rounded border text-sm text-slate-500">
+              <p className="fsm-card p-5 text-sm text-slate-500">
                 {techMode
-                  ? "No jobs assigned to you yet. Claim a pending job below."
+                  ? "No active assignments. You can claim a pending job below."
                   : "No installation jobs yet. Checkout with installation in System A to create one."}
               </p>
             )}
@@ -570,7 +645,7 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
             </div>
             {techMode && (
               <>
-                <h2 className="text-lg font-semibold pt-3">
+                <h2 className="pt-3 text-xl font-bold text-[#0b1c2d]">
                   Pending jobs available to claim
                 </h2>
                 {!pending.length && (
@@ -581,6 +656,16 @@ export function JobsBoard({ mode }: { mode: "dispatcher" | "technician" }) {
                 <div className="grid gap-4 lg:grid-cols-2">
                   {pending.map((job) => card(job, true))}
                 </div>
+                {historyJobs.length > 0 && (
+                  <details className="fsm-card p-5">
+                    <summary className="cursor-pointer text-base font-bold text-[#0b1c2d]">
+                      Completed & past jobs ({historyJobs.length})
+                    </summary>
+                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                      {historyJobs.map((job) => card(job))}
+                    </div>
+                  </details>
+                )}
               </>
             )}
           </>

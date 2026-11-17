@@ -5,13 +5,75 @@
 :root {
   --color-primary: #0e2378;
   --color-secondary: #193893;
-  --color-cta-red: #D60000;
-  --color-cta-yellow: #ffc107;
+  --color-cta-red: #d71920;
+  --color-cta-yellow: #ffc400;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f1f5f9;
-  color: #0f172a;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background-color: #f5f7fa;
+  color: #17181c;
   min-height: 100vh;
+}
+
+.fsm-card {
+  background: #fff;
+  border: 1px solid #dde3ea;
+  border-radius: 16px;
+  box-shadow: 0 3px 14px rgb(11 28 45 / 4%);
+}
+
+.fsm-job-card {
+  background: #fff;
+  border: 1px solid #dde3ea;
+  border-radius: 16px;
+  box-shadow: 0 3px 14px rgb(11 28 45 / 4%);
+  transition:
+    border-color 160ms,
+    box-shadow 160ms;
+}
+.fsm-job-card:hover {
+  border-color: #b8c6d5;
+  box-shadow: 0 9px 24px rgb(11 28 45 / 8%);
+}
+.fsm-action {
+  background: #ffc400;
+  color: #0b1c2d;
+  border-radius: 9px;
+  font-weight: 700;
+  transition: background 160ms;
+}
+.fsm-action:hover:not(:disabled) {
+  background: #edb700;
+}
+.fsm-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fsm-link {
+  color: #0e2378;
+  font-weight: 650;
+}
+.fsm-link:hover {
+  text-decoration: underline;
+}
+.fsm-input {
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #17181c;
+}
+.fsm-input:focus-visible,
+.fsm-action:focus-visible,
+.fsm-link:focus-visible,
+header a:focus-visible,
+header button:focus-visible {
+  outline: 3px solid #d99700;
+  outline-offset: 2px;
 }

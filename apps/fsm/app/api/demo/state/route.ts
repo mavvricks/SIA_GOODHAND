@@ -1,10 +1,12 @@
 import { databaseRoute } from "../../../../../../packages/database/postgres.mjs";
-import { NextResponse } from 'next/server';
-import { jobsStore } from '@/lib/services/jobs-store';
-import { simulationService } from '@/lib/simulation/simulation-service';
-import { mailService } from '@/lib/email/mail-service';
+import { NextResponse } from "next/server";
+import { jobsStore } from "@/lib/services/jobs-store";
+import { simulationService } from "@/lib/simulation/simulation-service";
+import { mailService } from "@/lib/email/mail-service";
 
 async function handleGET() {
+  if (process.env.NODE_ENV === "production")
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const flags = simulationService.getAllFlags();
   const jobs = jobsStore.listJobs();
   const outbox = jobsStore.getOutboxMessages();
@@ -18,7 +20,7 @@ async function handleGET() {
     outbox,
     feedbacks,
     followups,
-    emails
+    emails,
   });
 }
 

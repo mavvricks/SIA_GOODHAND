@@ -13,7 +13,7 @@
     "clone-site": "node scripts/clone-site.mjs",
     "contract:lint": "pnpm --filter @prototype/contract lint",
     "contract:generate": "pnpm --filter @prototype/contract generate",
-    "build": "pnpm -r --filter=./apps/* build",
+    "build": "pnpm --filter @prototype/store build && pnpm --filter @prototype/fsm build",
     "dev": "pnpm --parallel --filter=./apps/* dev",
     "demo:reset": "node scripts/reset-demo.mjs",
     "test": "vitest run",

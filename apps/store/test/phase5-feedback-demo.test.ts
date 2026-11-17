@@ -77,7 +77,7 @@ describe('Phase 5 Acceptance: Feedback, Privacy Boundary, Follow-ups & Demo (TC-
       jobNumber,
       {
         completedAt: '2026-11-20T10:30:00+08:00',
-        result: 'Successfully completed CCTV mounting',
+        result: 'success',
         usedItems: [{ sku: 'GH-CCTV-001', quantity: 1, serialNumbers: [`SN-${suffix}-001`] }],
         returnedItems: [],
         notes: 'Clean installation'

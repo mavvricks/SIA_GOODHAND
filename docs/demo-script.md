@@ -12,7 +12,7 @@
    - Browse catalog, select **Dahua DH-IPC-HDBW1431E-S4 4MP Fixed Dome Camera** (`GH-CCTV-001`).
    - Add 2 units to Cart and proceed to Checkout (`/checkout`).
    - Check **"Include Professional Installation"**, enter preferred window (2 days ahead) and address: `123 Ayala Ave, Makati`.
-   - Click **Submit Order & Payment**.
+   - Choose a simulated payment method, click **Review order**, then confirm the details in the review step.
    - Show instant order confirmation with sequential number (e.g., `GH-20261110-000001`).
 2. **Presenter B (FSM):**
    - Open `http://localhost:3100`.
